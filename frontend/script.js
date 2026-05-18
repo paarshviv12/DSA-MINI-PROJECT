@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Current ATTENDING Doctor (defaults to Dr. Smith)
+    let currentDoctor = "Dr. Smith";
+    let currentDoctorRole = "Attending ER";
+
     // Initial State - Active Queue
     let queue = [
         { id: 1001, name: "John Doe", age: 45, severity: 1, condition: "Cardiac Arrest", waitTime: 4 },
@@ -7,20 +11,20 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 1004, name: "Emily Davis", age: 34, severity: 5, condition: "Minor Laceration", waitTime: 85 }
     ];
 
-    // Bed Directory State with Full Metadata (Module 2 & Advisor)
+    // Bed Directory State with Full Metadata (Module 2 & Advisor & Attending Details)
     let beds = [
-        { id: 101, name: "Bed 101", status: "Occupied", patient: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis" },
-        { id: 102, name: "Bed 102", status: "Available", patient: "", age: 0, severity: 0, condition: "" },
-        { id: 103, name: "Bed 103", status: "Occupied", patient: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle" },
-        { id: 104, name: "Bed 104", status: "Available", patient: "", age: 0, severity: 0, condition: "" },
-        { id: 105, name: "Bed 105", status: "Available", patient: "", age: 0, severity: 0, condition: "" },
-        { id: 106, name: "Bed 106", status: "Available", patient: "", age: 0, severity: 0, condition: "" }
+        { id: 101, name: "Bed 101", status: "Occupied", patient: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis", admittedAt: "14:15", attendingDoctor: "Dr. Smith" },
+        { id: 102, name: "Bed 102", status: "Available", patient: "", age: 0, severity: 0, condition: "", admittedAt: "", attendingDoctor: "" },
+        { id: 103, name: "Bed 103", status: "Occupied", patient: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", admittedAt: "14:30", attendingDoctor: "Dr. House" },
+        { id: 104, name: "Bed 104", status: "Available", patient: "", age: 0, severity: 0, condition: "", admittedAt: "", attendingDoctor: "" },
+        { id: 105, name: "Bed 105", status: "Available", patient: "", age: 0, severity: 0, condition: "", admittedAt: "", attendingDoctor: "" },
+        { id: 106, name: "Bed 106", status: "Available", patient: "", age: 0, severity: 0, condition: "", admittedAt: "", attendingDoctor: "" }
     ];
 
     // Recent Admissions Log (Module 1)
     let recentAdmissions = [
-        { id: 901, name: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis", bed: "Bed 101", timeStr: "14:15" },
-        { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30" }
+        { id: 901, name: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis", bed: "Bed 101", timeStr: "14:15", attendingDoctor: "Dr. Smith" },
+        { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30", attendingDoctor: "Dr. House" }
     ];
 
     // Clinical Events Timeline (Module 5)
@@ -68,6 +72,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const undoStackList = document.getElementById('undoStackList');
     const binaryHeapVisual = document.getElementById('binaryHeapVisual');
 
+    // Doctor Profile Modals
+    const userProfileWidget = document.querySelector('.user-profile');
+    const profileModal = document.getElementById('profileModal');
+    const closeProfileModal = document.getElementById('closeProfileModal');
+    const cancelProfileBtn = document.getElementById('cancelProfileBtn');
+    const profileForm = document.getElementById('profileForm');
+
+    // Bed Attending Console Modal
+    const bedConsoleModal = document.getElementById('bedConsoleModal');
+    const closeBedConsoleModal = document.getElementById('closeBedConsoleModal');
+    const closeBedConsoleBtn = document.getElementById('closeBedConsoleBtn');
+    const bedConsolePatientName = document.getElementById('bedConsolePatientName');
+    const bedConsoleSeverityBadge = document.getElementById('bedConsoleSeverityBadge');
+    const bedConsoleIssue = document.getElementById('bedConsoleIssue');
+    const bedConsoleTime = document.getElementById('bedConsoleTime');
+    const bedConsoleDoctor = document.getElementById('bedConsoleDoctor');
+    const btnSendTraumaCode = document.getElementById('btnSendTraumaCode');
+    const traumaConsoleLog = document.getElementById('traumaConsoleLog');
+
     // Snippets Hooks
     const bedsGrid = document.getElementById('bedsGrid');
     const recentAdmissionsList = document.getElementById('recentAdmissionsList');
@@ -76,6 +99,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle Toggles
     const toggleSound = document.getElementById('toggleSound');
     const toggleAutoBeds = document.getElementById('toggleAutoBeds');
+
+    // Extract initials from doctor name (updates DS avatar)
+    function getInitials(name) {
+        let clean = name.replace(/^(dr|mr|ms|mrs|prof)\.?\s+/i, '').trim();
+        let parts = clean.split(/\s+/);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        } else if (parts.length === 1 && parts[0].length >= 2) {
+            return parts[0].substring(0, 2).toUpperCase();
+        }
+        return "DS";
+    }
 
     // Severity Text mapping
     const getSeverityText = (level) => {
@@ -114,6 +149,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Web Audio Synthesizer Sawtooth emergency siren for trauma paging
+    function playTraumaSiren() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            let count = 0;
+            const interval = setInterval(() => {
+                if (count >= 5) {
+                    clearInterval(interval);
+                    return;
+                }
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(count % 2 === 0 ? 800 : 1100, ctx.currentTime);
+                gain.gain.setValueAtTime(0.06, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.35);
+                count++;
+            }, 350);
+        } catch (e) {
+            console.warn("Audio Context unsupported:", e);
+        }
+    }
+
     // Push Transaction on to the Stacking Undo Log
     function pushTransaction(action) {
         if (undoStack.length >= 8) {
@@ -140,6 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 case 'discharge': label = `RELEASE: ${act.data.admissionRecord.name} (${act.data.bedName})`; break;
                 case 'schedule_event': label = `SCHED: ${act.data.type} (${act.data.patientName})`; break;
                 case 'toggle_event_status': label = `STATUS: ${act.data.type} ➔ ${act.data.newStatus.toUpperCase()}`; break;
+                case 'trauma_code': label = `TRAUMA: ${act.data.specialist} reassigned to ${act.data.bedName}`; break;
             }
             const isTop = (idx === undoStack.length - 1) ? ' <b style="color: #ffedd5;">(ACTIVE)</b>' : '';
             return `[${idx + 1}] ${label}${isTop}`;
@@ -175,6 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     bed.age = 0;
                     bed.severity = 0;
                     bed.condition = "";
+                    bed.admittedAt = "";
+                    bed.attendingDoctor = "";
                 }
                 
                 // Remove from recent admissions log
@@ -198,6 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     dischargeBed.age = action.data.admissionRecord.age;
                     dischargeBed.severity = action.data.admissionRecord.severity;
                     dischargeBed.condition = action.data.admissionRecord.condition;
+                    dischargeBed.admittedAt = action.data.admissionRecord.timeStr;
+                    dischargeBed.attendingDoctor = action.data.admissionRecord.attendingDoctor || currentDoctor;
                 }
                 
                 renderQueue();
@@ -220,6 +287,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderEvents();
                 }
                 break;
+
+            case 'trauma_code':
+                // Revert attending doctor back to previous
+                const traumaBed = beds.find(b => b.id === action.data.bedId);
+                if (traumaBed) {
+                    traumaBed.attendingDoctor = action.data.oldDoctor;
+                }
+                const traumaAdm = recentAdmissions.find(a => a.bed === action.data.bedName);
+                if (traumaAdm) {
+                    traumaAdm.attendingDoctor = action.data.oldDoctor;
+                }
+                renderBeds();
+                renderWardDetails();
+                renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+                break;
         }
     }
 
@@ -233,7 +315,15 @@ document.addEventListener('DOMContentLoaded', () => {
         beds.forEach(bed => {
             const cell = document.createElement('div');
             cell.className = `bed-cell ${bed.status.toLowerCase()}`;
+            cell.style.cursor = bed.status === "Occupied" ? "pointer" : "default";
             
+            // Allow clicking on any occupied bed card to see detailed attending info console
+            if (bed.status === "Occupied") {
+                cell.addEventListener('click', () => {
+                    openBedConsole(bed.id);
+                });
+            }
+
             let statusIndicator = `<span class="bed-status-dot"></span>`;
             let bodyHTML = '';
 
@@ -280,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let labelHTML = `
                 <div class="ward-bed-label">
                     <span class="ward-bed-icon">🛏</span>
-                    <span class="ward-bed-name">${bed.name}</span>
+                    <span class="ward-bed-name clickable-bed-trigger" onclick="openBedConsole(${bed.id})" title="View attending physician, admitted time, or call trauma specialists.">${bed.name}</span>
                 </div>
             `;
 
@@ -365,6 +455,155 @@ document.addEventListener('DOMContentLoaded', () => {
 
             row.innerHTML = labelHTML + infoHTML + advisorHTML + actionHTML;
             wardBedsContainer.appendChild(row);
+        });
+    }
+
+    // Interactive Attending Bed Console Modal popup launcher
+    window.openBedConsole = function(bedId) {
+        const bed = beds.find(b => b.id === bedId);
+        if (!bed || bed.status !== "Occupied") return;
+
+        // Populate Modal Fields
+        document.getElementById('bedConsoleTitle').textContent = `${bed.name}attending details`;
+        bedConsolePatientName.textContent = `${bed.patient} (${bed.age} yrs)`;
+        bedConsoleSeverityBadge.className = `badge sev-${bed.severity}`;
+        bedConsoleSeverityBadge.textContent = getSeverityText(bed.severity);
+        bedConsoleIssue.textContent = bed.condition;
+        bedConsoleTime.textContent = bed.admittedAt || "14:15";
+        bedConsoleDoctor.textContent = bed.attendingDoctor || currentDoctor;
+
+        // Reset trauma broadcast terminal
+        traumaConsoleLog.style.display = "none";
+        traumaConsoleLog.innerHTML = "";
+        
+        // Remove old click listeners from Trauma Broadcast button
+        const newBtn = btnSendTraumaCode.cloneNode(true);
+        btnSendTraumaCode.parentNode.replaceChild(newBtn, btnSendTraumaCode);
+        
+        // Attach click action to trigger emergency trauma logs
+        newBtn.addEventListener('click', () => {
+            triggerTraumaBroadcast(bed);
+        });
+
+        // Toggle Modal Active CSS class
+        bedConsoleModal.classList.add('active');
+    };
+
+    // Automated trauma paging simulation with custom department specialist matching
+    function triggerTraumaBroadcast(bed) {
+        playTraumaSiren();
+        traumaConsoleLog.style.display = "block";
+        traumaConsoleLog.innerHTML = `[0.0s] 🚨 BROADCASTING CODE RED EMERGENCY PAGING TO ALL HOSPITAL DEPARTMENTS...<br>`;
+        
+        // Determine specialist matching based on chief patient condition
+        let dept = "General Trauma";
+        let specialist = "Dr. Allison Cameron";
+        const cond = bed.condition.toLowerCase();
+
+        if (cond.includes("cardiac") || cond.includes("chest") || cond.includes("heart")) {
+            dept = "Cardiology Division";
+            specialist = "Dr. Robert Chase (Cardiologist)";
+        } else if (cond.includes("fracture") || cond.includes("ankle") || cond.includes("sprained") || cond.includes("bone")) {
+            dept = "Orthopedics & Joint Trauma";
+            specialist = "Dr. James Wilson (Orthopedist)";
+        } else if (cond.includes("hypertensive") || cond.includes("stroke") || cond.includes("brain") || cond.includes("crisis")) {
+            dept = "Critical Care & Neurology Specialist";
+            specialist = "Dr. Eric Foreman (Neurologist)";
+        }
+
+        const logLines = [
+            { t: 750, txt: `[0.8s] 📡 Clinical priority triggered: [${bed.condition}]. Paging on-call ${dept}...` },
+            { t: 1500, txt: `[1.6s] 🛰️ Pinged pagers: scanning floor responder GPS coordinates inside hospital perimeter...` },
+            { t: 2250, txt: `[2.4s] 🩺 Specialists check: Dr. House (In ICU), Dr. Cuddy (Consulting), Dr. Cameron (On Call)...` },
+            { t: 3000, txt: `[3.2s] ⚡ Specialist Responder Accepted alert! ${specialist} is en route to ER.` },
+            { t: 3800, txt: `[4.0s] 🔄 Attending Physician successfully re-assigned to <b>${specialist}</b>.` }
+        ];
+
+        logLines.forEach(line => {
+            setTimeout(() => {
+                traumaConsoleLog.innerHTML += line.txt + "<br>";
+                traumaConsoleLog.scrollTop = traumaConsoleLog.scrollHeight;
+                
+                // End of simulation action updates
+                if (line.t === 3800) {
+                    const oldDoctor = bed.attendingDoctor || currentDoctor;
+                    
+                    // Reassign states
+                    bed.attendingDoctor = specialist;
+                    bedConsoleDoctor.textContent = specialist;
+
+                    // Sync changes with recent admissions list record
+                    const adm = recentAdmissions.find(a => a.bed === bed.name);
+                    if (adm) {
+                        adm.attendingDoctor = specialist;
+                    }
+
+                    // Push transaction on to Undo Stack
+                    pushTransaction({
+                        type: 'trauma_code',
+                        data: {
+                            bedId: bed.id,
+                            bedName: bed.name,
+                            oldDoctor: oldDoctor,
+                            specialist: specialist
+                        }
+                    });
+
+                    // Update layouts
+                    renderBeds();
+                    renderWardDetails();
+                    renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+                }
+            }, line.t);
+        });
+    }
+
+    // Close Bed Attending Console Modal
+    const closeConsole = () => {
+        bedConsoleModal.classList.remove('active');
+        traumaConsoleLog.style.display = "none";
+    };
+    if (closeBedConsoleModal) closeBedConsoleModal.addEventListener('click', closeConsole);
+    if (closeBedConsoleBtn) closeBedConsoleBtn.addEventListener('click', closeConsole);
+
+    // Click attending login header widget to toggle Profile Modal editor
+    if (userProfileWidget) {
+        userProfileWidget.addEventListener('click', () => {
+            // Fill current inputs
+            document.getElementById('staffDoctorName').value = currentDoctor;
+            document.getElementById('staffDoctorRole').value = currentDoctorRole;
+            profileModal.classList.add('active');
+        });
+    }
+
+    const closeProfile = () => {
+        profileModal.classList.remove('active');
+        profileForm.reset();
+    };
+    if (closeProfileModal) closeProfileModal.addEventListener('click', closeProfile);
+    if (cancelProfileBtn) cancelProfileBtn.addEventListener('click', closeProfile);
+
+    // Profile form submit updates credentials
+    if (profileForm) {
+        profileForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newName = document.getElementById('staffDoctorName').value.trim();
+            const newRole = document.getElementById('staffDoctorRole').value.trim();
+
+            if (newName && newRole) {
+                currentDoctor = newName;
+                currentDoctorRole = newRole;
+
+                // Sync header DOM text elements
+                document.querySelector('.user-info strong').textContent = newName;
+                document.querySelector('.user-info span').textContent = newRole;
+                
+                // Automatically generate initials
+                const initialText = getInitials(newName);
+                document.querySelector('.avatar').textContent = initialText;
+
+                closeProfile();
+            }
         });
     }
 
@@ -555,7 +794,7 @@ document.addEventListener('DOMContentLoaded', () => {
             div.innerHTML = `
                 <div class="admission-info">
                     <span class="admission-name">${item.name} (${item.age})</span>
-                    <span class="admission-time">Admitted ${item.timeStr} &middot; ${item.condition}</span>
+                    <span class="admission-time">Admitted ${item.timeStr} &middot; Doc: <b>${item.attendingDoctor || currentDoctor}</b> &middot; ${item.condition}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <span class="admission-bed">${item.bed}</span>
@@ -650,6 +889,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 freeBed.age = patient.age;
                 freeBed.severity = patient.severity;
                 freeBed.condition = patient.condition;
+                
+                const timeNow = new Date();
+                const timeStr = `${String(timeNow.getHours()).padStart(2, '0')}:${String(timeNow.getMinutes()).padStart(2, '0')}`;
+                
+                freeBed.admittedAt = timeStr;
+                freeBed.attendingDoctor = currentDoctor;
                 assignedBed = freeBed;
             }
         }
@@ -664,7 +909,8 @@ document.addEventListener('DOMContentLoaded', () => {
             severity: patient.severity,
             condition: patient.condition,
             bed: assignedBed ? assignedBed.name : "Overflow Ward",
-            timeStr: timeStr
+            timeStr: timeStr,
+            attendingDoctor: currentDoctor
         };
 
         recentAdmissions.unshift(admissionRecord);
@@ -700,6 +946,8 @@ document.addEventListener('DOMContentLoaded', () => {
             occupiedBed.age = 0;
             occupiedBed.severity = 0;
             occupiedBed.condition = "";
+            occupiedBed.admittedAt = "";
+            occupiedBed.attendingDoctor = "";
         }
 
         // Record Undo Transaction
@@ -748,6 +996,8 @@ document.addEventListener('DOMContentLoaded', () => {
         bed.age = 0;
         bed.severity = 0;
         bed.condition = "";
+        bed.admittedAt = "";
+        bed.attendingDoctor = "";
 
         renderBeds();
         renderQueue();
