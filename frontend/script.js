@@ -486,9 +486,10 @@ document.addEventListener('DOMContentLoaded', () => {
         traumaConsoleLog.style.display = "none";
         traumaConsoleLog.innerHTML = "";
         
-        // Remove old click listeners from Trauma Broadcast button
-        const newBtn = btnSendTraumaCode.cloneNode(true);
-        btnSendTraumaCode.parentNode.replaceChild(newBtn, btnSendTraumaCode);
+        // Remove old click listeners from Trauma Broadcast button by querying the live element
+        const currentBtn = document.getElementById('btnSendTraumaCode');
+        const newBtn = currentBtn.cloneNode(true);
+        currentBtn.parentNode.replaceChild(newBtn, currentBtn);
         
         // Attach click action to trigger emergency trauma logs
         newBtn.addEventListener('click', () => {
