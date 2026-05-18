@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!bed || bed.status !== "Occupied") return;
 
         // Populate Modal Fields
-        document.getElementById('bedConsoleTitle').textContent = `${bed.name}attending details`;
+        document.getElementById('bedConsoleTitle').textContent = `${bed.name} - Attending Details`;
         bedConsolePatientName.textContent = `${bed.patient} (${bed.age} yrs)`;
         bedConsoleSeverityBadge.className = `badge sev-${bed.severity}`;
         bedConsoleSeverityBadge.textContent = getSeverityText(bed.severity);
