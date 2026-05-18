@@ -231,6 +231,57 @@
                     </div>
                 </div>
 
+                <!-- Card 5: Pulse Event Scheduler (Sage Green Textured) -->
+                <div class="dashboard-card card-sage">
+                    <div class="card-texture"></div>
+                    <div class="card-content-wrapper">
+                        <div class="card-header-row">
+                            <span class="card-badge">Module 05</span>
+                            <h4>Pulse Event Scheduler</h4>
+                        </div>
+                        <p class="card-desc">Schedule and track clinical procedures, surgical operations, lab tests, and imaging diagnostics for admitted patients.</p>
+                        
+                        <div class="interactive-snippet scheduler-snippet" style="display: flex; flex-direction: column; gap: 0.65rem; height: auto; min-height: 150px;">
+                            <div class="scheduler-controls" style="display: flex; gap: 0.5rem; width: 100%;">
+                                <button class="btn-discharge-mini" id="openAddEventBtn" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-color: rgba(255,255,255,0.25);">Schedule Procedure</button>
+                                <button class="btn-discharge-mini" id="viewActiveEventsBtn" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; border-color: rgba(255,255,255,0.25);">Procedure Timeline</button>
+                            </div>
+                            <div class="recent-admissions-list" id="eventsTimelineList" style="max-height: 120px; overflow-y: auto;">
+                                <!-- Dynamically loaded medical events timeline -->
+                                <div class="empty-records-msg">No medical events scheduled.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 6: Undo History & DSA Heap Visualizer (Terracotta Textured) -->
+                <div class="dashboard-card card-terracotta">
+                    <div class="card-texture"></div>
+                    <div class="card-content-wrapper">
+                        <div class="card-header-row">
+                            <span class="card-badge">Module 06</span>
+                            <h4>Transaction Stack & Heap</h4>
+                        </div>
+                        <p class="card-desc">Audit recent clinical changes, trigger transactional undos, and inspect the priority queue's backing binary heap structure.</p>
+                        
+                        <div class="interactive-snippet undo-snippet" style="display: flex; flex-direction: column; gap: 0.65rem; height: auto; min-height: 150px;">
+                            <div class="undo-controls" style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.5rem;">
+                                <div style="font-size: 0.75rem; opacity: 0.85; font-weight: 600;">Transaction Log</div>
+                                <button class="btn-discharge-mini" id="triggerUndoBtn" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;">
+                                    <span>↩️</span> Undo Last
+                                </button>
+                            </div>
+                            <div id="undoStackList" style="font-size: 0.72rem; opacity: 0.85; background-color: rgba(0,0,0,0.12); padding: 0.5rem; border-radius: 6px; font-family: monospace; max-height: 50px; overflow-y: auto; text-align: left; width: 100%;">
+                                [STACK EMPTY] No transactions recorded.
+                            </div>
+                            <div style="font-size: 0.75rem; font-weight: 700; opacity: 0.9; margin-top: 0.25rem; text-align: left; width: 100%;">Backing Binary Heap Array (DSA)</div>
+                            <div id="binaryHeapVisual" style="display: flex; gap: 0.35rem; overflow-x: auto; padding: 0.3rem 0; font-family: monospace; font-size: 0.72rem; width: 100%; min-height: 32px; align-items: center;">
+                                <!-- Binary Heap elements populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -298,6 +349,65 @@
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" id="closeWardDetailsBtn">Close Directory</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Schedule Event Modal -->
+    <div class="modal-overlay" id="eventModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <h3>Schedule Medical Procedure</h3>
+                    <p class="modal-subtitle">Register a medical test, surgical operation, or lab diagnostic.</p>
+                </div>
+                <button class="close-btn" id="closeEventModal">&times;</button>
+            </div>
+            <form id="eventForm">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Select Admitted Patient</label>
+                            <select id="eventPatientSelect" required>
+                                <!-- Dynamically loaded from admitted patients -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Procedure Type</label>
+                            <select id="eventType" required>
+                                <option value="Surgery">Surgery / Operation</option>
+                                <option value="MRI">MRI / CT Imaging</option>
+                                <option value="Lab Test">Blood / Lab Diagnostic</option>
+                                <option value="Consultation">Specialist Consultation</option>
+                                <option value="Medication">Therapeutic Administration</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Priority Level</label>
+                            <select id="eventPriority" required>
+                                <option value="Critical">🔴 Critical (Immediate)</option>
+                                <option value="Urgent">🟡 Urgent (Same Day)</option>
+                                <option value="Stable">🟢 Stable (Routine)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Scheduled Time</label>
+                            <input type="time" id="eventTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Assigned Medical Doctor</label>
+                            <input type="text" id="eventDoctor" required placeholder="e.g. Dr. House">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Procedure Title / Instructions</label>
+                            <input type="text" id="eventTitle" required placeholder="e.g. Abdominal MRI Scan with contrast">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="cancelEventBtn">Cancel</button>
+                    <button type="submit" class="btn-primary">Schedule Event</button>
+                </div>
+            </form>
         </div>
     </div>
 

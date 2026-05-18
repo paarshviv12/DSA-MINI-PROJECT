@@ -23,6 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30" }
     ];
 
+    // Clinical Events Timeline (Module 5)
+    let events = [
+        { id: 'E1', patientName: 'Marcus Aurelius', type: 'MRI', title: 'Brain CT Scan (Hypertensive Staging)', time: '15:30', doctor: 'Dr. House', priority: 'Urgent', status: 'upcoming' },
+        { id: 'E2', patientName: 'Clara Oswald', type: 'Lab Test', title: 'X-Ray of Right Ankle', time: '16:00', doctor: 'Dr. Smith', priority: 'Stable', status: 'upcoming' }
+    ];
+
+    // Transaction Undo Stack (Module 6)
+    let undoStack = [];
+
     // DOM Elements Hook
     const queueTableBody = document.getElementById('queueTableBody');
     const criticalWaitCount = document.getElementById('criticalWaitCount');
@@ -43,6 +52,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeWardDetailsModal = document.getElementById('closeWardDetailsModal');
     const closeWardDetailsBtn = document.getElementById('closeWardDetailsBtn');
     const wardBedsContainer = document.getElementById('wardBedsContainer');
+
+    // Procedure Scheduler Modal Hooks (Module 5)
+    const eventModal = document.getElementById('eventModal');
+    const openAddEventBtn = document.getElementById('openAddEventBtn');
+    const viewActiveEventsBtn = document.getElementById('viewActiveEventsBtn');
+    const closeEventModalBtn = document.getElementById('closeEventModal');
+    const cancelEventBtn = document.getElementById('cancelEventBtn');
+    const eventForm = document.getElementById('eventForm');
+    const eventPatientSelect = document.getElementById('eventPatientSelect');
+    const eventsTimelineList = document.getElementById('eventsTimelineList');
+
+    // Transaction & DSA Hooks (Module 6)
+    const triggerUndoBtn = document.getElementById('triggerUndoBtn');
+    const undoStackList = document.getElementById('undoStackList');
+    const binaryHeapVisual = document.getElementById('binaryHeapVisual');
 
     // Snippets Hooks
     const bedsGrid = document.getElementById('bedsGrid');
@@ -87,6 +111,115 @@ document.addEventListener('DOMContentLoaded', () => {
             osc.stop(ctx.currentTime + 0.45);
         } catch (e) {
             console.warn("Audio Context blocked or unsupported:", e);
+        }
+    }
+
+    // Push Transaction on to the Stacking Undo Log
+    function pushTransaction(action) {
+        if (undoStack.length >= 8) {
+            undoStack.shift(); // Bound memory to 8 actions
+        }
+        undoStack.push(action);
+        renderUndoStack();
+    }
+
+    // Render visual transaction logger
+    function renderUndoStack() {
+        if (!undoStackList) return;
+        
+        if (undoStack.length === 0) {
+            undoStackList.innerHTML = `[STACK EMPTY] No transactions recorded.`;
+            return;
+        }
+
+        undoStackList.innerHTML = undoStack.map((act, idx) => {
+            let label = '';
+            switch(act.type) {
+                case 'register': label = `REG: ${act.data.name} (L${act.data.severity})`; break;
+                case 'admit': label = `ADMIT: ${act.data.patient.name} ➔ ${act.data.bedName}`; break;
+                case 'discharge': label = `RELEASE: ${act.data.admissionRecord.name} (${act.data.bedName})`; break;
+                case 'schedule_event': label = `SCHED: ${act.data.type} (${act.data.patientName})`; break;
+                case 'toggle_event_status': label = `STATUS: ${act.data.type} ➔ ${act.data.newStatus.toUpperCase()}`; break;
+            }
+            const isTop = (idx === undoStack.length - 1) ? ' <b style="color: #ffedd5;">(ACTIVE)</b>' : '';
+            return `[${idx + 1}] ${label}${isTop}`;
+        }).reverse().join('<br>');
+    }
+
+    // Roll back last transaction (Transactional Pop)
+    function triggerUndo() {
+        if (undoStack.length === 0) {
+            alert("No recent operations to undo.");
+            return;
+        }
+
+        const action = undoStack.pop();
+        renderUndoStack();
+
+        switch (action.type) {
+            case 'register':
+                // Remove patient from wait queue
+                queue = queue.filter(p => p.id !== action.data.id);
+                renderQueue();
+                break;
+                
+            case 'admit':
+                // Return patient to wait queue
+                queue.push(action.data.patient);
+                
+                // Restore bed state
+                const bed = beds.find(b => b.name === action.data.bedName);
+                if (bed) {
+                    bed.status = "Available";
+                    bed.patient = "";
+                    bed.age = 0;
+                    bed.severity = 0;
+                    bed.condition = "";
+                }
+                
+                // Remove from recent admissions log
+                recentAdmissions = recentAdmissions.filter(a => a.id !== action.data.patient.id);
+                
+                renderQueue();
+                renderBeds();
+                renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+                renderWardDetails();
+                break;
+                
+            case 'discharge':
+                // Restore the patient's record to recent admissions
+                recentAdmissions.unshift(action.data.admissionRecord);
+                
+                // Re-occupy the bed
+                const dischargeBed = beds.find(b => b.name === action.data.bedName);
+                if (dischargeBed) {
+                    dischargeBed.status = "Occupied";
+                    dischargeBed.patient = action.data.admissionRecord.name;
+                    dischargeBed.age = action.data.admissionRecord.age;
+                    dischargeBed.severity = action.data.admissionRecord.severity;
+                    dischargeBed.condition = action.data.admissionRecord.condition;
+                }
+                
+                renderQueue();
+                renderBeds();
+                renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+                renderWardDetails();
+                break;
+                
+            case 'schedule_event':
+                // Remove the scheduled event
+                events = events.filter(e => e.id !== action.data.id);
+                renderEvents();
+                break;
+                
+            case 'toggle_event_status':
+                // Restore old status
+                const ev = events.find(e => e.id === action.data.eventId);
+                if (ev) {
+                    ev.status = action.data.oldStatus;
+                    renderEvents();
+                }
+                break;
         }
     }
 
@@ -184,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     stagingDesc = "Low-severity triage level. Early release highly recommended to optimize ER bed capacity.";
                     btnClass = "eligible-green";
                     btnDisabled = "";
-                    btnLabel = "Authorize Release";
+                    btnLabel = "Safe Discharge";
                 }
 
                 infoHTML = `
@@ -232,6 +365,171 @@ document.addEventListener('DOMContentLoaded', () => {
 
             row.innerHTML = labelHTML + infoHTML + advisorHTML + actionHTML;
             wardBedsContainer.appendChild(row);
+        });
+    }
+
+    // Render backing Binary Heap Visualizer (Module 6 DSA feature)
+    function renderBinaryHeap() {
+        if (!binaryHeapVisual) return;
+        binaryHeapVisual.innerHTML = '';
+
+        if (queue.length === 0) {
+            binaryHeapVisual.innerHTML = `<span style="opacity: 0.5; font-style: italic;">Wait queue is empty. Heap is unpopulated.</span>`;
+            return;
+        }
+
+        queue.forEach((p, idx) => {
+            const pill = document.createElement('div');
+            pill.className = `heap-node-pill l${p.severity}`;
+            pill.innerHTML = `[${idx}] ${p.name.split(' ')[0]} (L${p.severity})`;
+            pill.setAttribute('data-index', idx);
+            
+            // Mouse event listeners for interactive parent-child highlighting
+            pill.addEventListener('mouseenter', () => {
+                highlightHeapNode(idx);
+            });
+            pill.addEventListener('mouseleave', () => {
+                clearHeapHighlights();
+            });
+
+            binaryHeapVisual.appendChild(pill);
+        });
+    }
+
+    // Parent-child heap node highlighting
+    function highlightHeapNode(index) {
+        const pills = document.querySelectorAll('.heap-node-pill');
+        pills.forEach(p => p.style.opacity = '0.35'); // Dim all nodes
+
+        // Target self
+        const selfPill = document.querySelector(`.heap-node-pill[data-index="${index}"]`);
+        if (selfPill) {
+            selfPill.style.opacity = '1';
+            selfPill.style.transform = 'scale(1.1)';
+            selfPill.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.4)';
+        }
+
+        // Highlight Parent Math index: Math.floor((index - 1) / 2)
+        if (index > 0) {
+            const parentIdx = Math.floor((index - 1) / 2);
+            const parentPill = document.querySelector(`.heap-node-pill[data-index="${parentIdx}"]`);
+            if (parentPill) {
+                parentPill.style.opacity = '1';
+                parentPill.style.borderColor = '#60a5fa'; // Blue
+                parentPill.style.boxShadow = '0 0 10px rgba(96, 165, 250, 0.6)';
+                parentPill.innerHTML = `[${parentIdx}] Parent: ${queue[parentIdx].name.split(' ')[0]} (L${queue[parentIdx].severity})`;
+            }
+        }
+
+        // Highlight Left Child index: 2 * index + 1
+        const leftIdx = 2 * index + 1;
+        if (leftIdx < queue.length) {
+            const leftPill = document.querySelector(`.heap-node-pill[data-index="${leftIdx}"]`);
+            if (leftPill) {
+                leftPill.style.opacity = '1';
+                leftPill.style.borderColor = '#fbbf24'; // Yellow
+                leftPill.style.boxShadow = '0 0 10px rgba(251, 191, 36, 0.6)';
+                leftPill.innerHTML = `[${leftIdx}] L-Child: ${queue[leftIdx].name.split(' ')[0]} (L${queue[leftIdx].severity})`;
+            }
+        }
+
+        // Highlight Right Child index: 2 * index + 2
+        const rightIdx = 2 * index + 2;
+        if (rightIdx < queue.length) {
+            const rightPill = document.querySelector(`.heap-node-pill[data-index="${rightIdx}"]`);
+            if (rightPill) {
+                rightPill.style.opacity = '1';
+                rightPill.style.borderColor = '#f59e0b'; // Amber
+                rightPill.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.6)';
+                rightPill.innerHTML = `[${rightIdx}] R-Child: ${queue[rightIdx].name.split(' ')[0]} (L${queue[rightIdx].severity})`;
+            }
+        }
+    }
+
+    // Reset Highlights
+    function clearHeapHighlights() {
+        const pills = document.querySelectorAll('.heap-node-pill');
+        pills.forEach((p, idx) => {
+            p.style.opacity = '1';
+            p.style.transform = 'none';
+            p.style.boxShadow = 'none';
+            p.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+            const pObj = queue[idx];
+            if (pObj) {
+                p.innerHTML = `[${idx}] ${pObj.name.split(' ')[0]} (L${pObj.severity})`;
+            }
+        });
+    }
+
+    // Render Clinical Events Timeline (Module 5)
+    function renderEvents() {
+        if (!eventsTimelineList) return;
+        eventsTimelineList.innerHTML = '';
+
+        if (events.length === 0) {
+            eventsTimelineList.innerHTML = `<div class="empty-records-msg">No clinical procedures scheduled.</div>`;
+            return;
+        }
+
+        events.forEach(ev => {
+            const item = document.createElement('div');
+            item.className = `event-timeline-item priority-${ev.priority.toLowerCase()}`;
+            
+            let statusText = ev.status.toUpperCase();
+            
+            item.innerHTML = `
+                <div class="event-info-block">
+                    <span class="event-title-line">${ev.type}: ${ev.title}</span>
+                    <span class="event-meta-line">Patient: <b>${ev.patientName}</b> &middot; Doc: ${ev.doctor} &middot; Scheduled: ${ev.time}</span>
+                </div>
+                <button class="event-status-badge ${ev.status.toLowerCase()}" onclick="toggleEventStatus('${ev.id}')">
+                    ${statusText}
+                </button>
+            `;
+            eventsTimelineList.appendChild(item);
+        });
+    }
+
+    // Toggle event status (Upcoming -> Ongoing -> Completed)
+    window.toggleEventStatus = function(eventId) {
+        const ev = events.find(e => e.id === eventId);
+        if (!ev) return;
+
+        const oldStatus = ev.status;
+        let newStatus = 'upcoming';
+
+        if (oldStatus === 'upcoming') newStatus = 'ongoing';
+        else if (oldStatus === 'ongoing') newStatus = 'completed';
+        else newStatus = 'upcoming';
+
+        ev.status = newStatus;
+
+        pushTransaction({
+            type: 'toggle_event_status',
+            data: { eventId: eventId, oldStatus: oldStatus, newStatus: newStatus, type: ev.type }
+        });
+
+        renderEvents();
+    };
+
+    // Populate admitted patients dropdown inside Event Scheduler Form
+    function populateAdmittedPatientsDropdown() {
+        if (!eventPatientSelect) return;
+        eventPatientSelect.innerHTML = '';
+
+        if (recentAdmissions.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = "";
+            opt.textContent = "No patients currently admitted";
+            eventPatientSelect.appendChild(opt);
+            return;
+        }
+
+        recentAdmissions.forEach(patient => {
+            const opt = document.createElement('option');
+            opt.value = patient.name;
+            opt.textContent = `${patient.name} (${patient.bed})`;
+            eventPatientSelect.appendChild(opt);
         });
     }
 
@@ -333,6 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (criticalWaitCount) criticalWaitCount.textContent = criticalCount;
 
         updateAnalytics();
+        renderBinaryHeap();
     }
 
     // Global Admit Patient function
@@ -358,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeNow = new Date();
         const timeStr = `${String(timeNow.getHours()).padStart(2, '0')}:${String(timeNow.getMinutes()).padStart(2, '0')}`;
         
-        recentAdmissions.unshift({
+        const admissionRecord = {
             id: patient.id,
             name: patient.name,
             age: patient.age,
@@ -366,6 +665,17 @@ document.addEventListener('DOMContentLoaded', () => {
             condition: patient.condition,
             bed: assignedBed ? assignedBed.name : "Overflow Ward",
             timeStr: timeStr
+        };
+
+        recentAdmissions.unshift(admissionRecord);
+
+        // Record Undo Transaction
+        pushTransaction({
+            type: 'admit',
+            data: {
+                patient: { ...patient },
+                bedName: assignedBed ? assignedBed.name : "Overflow Ward"
+            }
         });
 
         queue.splice(patientIndex, 1);
@@ -392,6 +702,15 @@ document.addEventListener('DOMContentLoaded', () => {
             occupiedBed.condition = "";
         }
 
+        // Record Undo Transaction
+        pushTransaction({
+            type: 'discharge',
+            data: {
+                admissionRecord: { ...record },
+                bedName: record.bed
+            }
+        });
+
         recentAdmissions.splice(index, 1);
 
         renderBeds();
@@ -406,8 +725,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Clean up from recent admissions log
         const admissionIndex = recentAdmissions.findIndex(a => a.bed === bed.name);
+        let record = null;
         if (admissionIndex !== -1) {
+            record = recentAdmissions[admissionIndex];
             recentAdmissions.splice(admissionIndex, 1);
+        }
+
+        // Record Undo Transaction
+        if (record) {
+            pushTransaction({
+                type: 'discharge',
+                data: {
+                    admissionRecord: { ...record },
+                    bedName: bed.name
+                }
+            });
         }
 
         // Release the bed
@@ -457,6 +789,45 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeWardDetailsModal) closeWardDetailsModal.addEventListener('click', closeWardModal);
     if (closeWardDetailsBtn) closeWardDetailsBtn.addEventListener('click', closeWardModal);
 
+    // Modal Control Handlers (Event Scheduler Module 5)
+    if (openAddEventBtn) {
+        openAddEventBtn.addEventListener('click', () => {
+            populateAdmittedPatientsDropdown();
+            if (eventModal) eventModal.classList.add('active');
+        });
+    }
+
+    const closeEventModal = () => {
+        if (eventModal) {
+            eventModal.classList.remove('active');
+            eventForm.reset();
+        }
+    };
+
+    if (closeEventModalBtn) closeEventModalBtn.addEventListener('click', closeEventModal);
+    if (cancelEventBtn) cancelEventBtn.addEventListener('click', closeEventModal);
+
+    // Flashing Animation for Timeline list
+    if (viewActiveEventsBtn) {
+        viewActiveEventsBtn.addEventListener('click', () => {
+            renderEvents();
+            if (eventsTimelineList) {
+                eventsTimelineList.style.transform = 'scale(1.03)';
+                eventsTimelineList.style.transition = 'transform 0.2s';
+                setTimeout(() => {
+                    eventsTimelineList.style.transform = 'scale(1)';
+                }, 200);
+            }
+        });
+    }
+
+    // Trigger Undo Action
+    if (triggerUndoBtn) {
+        triggerUndoBtn.addEventListener('click', () => {
+            triggerUndo();
+        });
+    }
+
     // Form Submit (Registering patient)
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
@@ -473,6 +844,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             queue.push(newPatient);
+
+            // Record Undo Transaction
+            pushTransaction({
+                type: 'register',
+                data: { ...newPatient }
+            });
             
             if (newSeverity <= 2) {
                 playEmergencyChime();
@@ -480,6 +857,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
             closeModal();
             renderQueue();
+        });
+    }
+
+    // Form Submit (Scheduling Event Module 5)
+    if (eventForm) {
+        eventForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const pSelect = document.getElementById('eventPatientSelect');
+            if (pSelect.value === "") {
+                alert("Please select a valid admitted patient first.");
+                return;
+            }
+
+            const newEvent = {
+                id: 'E' + Date.now(),
+                patientName: pSelect.value,
+                type: document.getElementById('eventType').value,
+                priority: document.getElementById('eventPriority').value,
+                time: document.getElementById('eventTime').value,
+                doctor: document.getElementById('eventDoctor').value,
+                title: document.getElementById('eventTitle').value,
+                status: 'upcoming'
+            };
+
+            events.unshift(newEvent);
+
+            // Record Undo Transaction
+            pushTransaction({
+                type: 'schedule_event',
+                data: { ...newEvent }
+            });
+
+            closeEventModal();
+            renderEvents();
         });
     }
 
@@ -512,4 +924,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderQueue();
     renderBeds();
     renderRecentAdmissions();
+    renderEvents();
+    renderUndoStack();
 });

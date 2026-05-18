@@ -1419,3 +1419,129 @@ body {
     }
 }
 
+/* -------------------------------------------------------------
+   Pulse Event Scheduler & Transaction Heap Styling
+   ------------------------------------------------------------- */
+
+/* Binary Heap Array Visualization Pills */
+.heap-node-pill {
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    background-color: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--color-cream-card);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.heap-node-pill.l1 {
+    border-color: rgba(211, 60, 42, 0.5);
+    background-color: rgba(211, 60, 42, 0.22);
+}
+
+.heap-node-pill.l2 {
+    border-color: rgba(224, 108, 48, 0.5);
+    background-color: rgba(224, 108, 48, 0.22);
+}
+
+.heap-node-pill.l3 {
+    border-color: rgba(202, 152, 38, 0.5);
+    background-color: rgba(202, 152, 38, 0.22);
+}
+
+.heap-node-pill.l4 {
+    border-color: rgba(99, 120, 101, 0.5);
+    background-color: rgba(99, 120, 101, 0.22);
+}
+
+.heap-node-pill.l5 {
+    border-color: rgba(75, 106, 138, 0.5);
+    background-color: rgba(75, 106, 138, 0.22);
+}
+
+/* Medical Event Timeline Items */
+.event-timeline-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.76rem;
+    margin-bottom: 0.45rem;
+    border-left: 4px solid transparent;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+}
+
+.event-timeline-item:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(2px);
+}
+
+.event-timeline-item.priority-critical {
+    border-left-color: var(--color-l1);
+}
+
+.event-timeline-item.priority-urgent {
+    border-left-color: var(--color-l3);
+}
+
+.event-timeline-item.priority-stable {
+    border-left-color: var(--color-l4);
+}
+
+.event-info-block {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.event-title-line {
+    font-weight: 700;
+    color: var(--color-cream-card);
+}
+
+.event-meta-line {
+    font-size: 0.68rem;
+    opacity: 0.7;
+    margin-top: 0.15rem;
+}
+
+.event-status-badge {
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 0.2rem 0.5rem;
+    border-radius: 30px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.event-status-badge.upcoming {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.event-status-badge.ongoing {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid rgba(217, 119, 6, 0.35);
+}
+
+.event-status-badge.completed {
+    background-color: #d1fae5;
+    color: #059669;
+    border: 1px solid rgba(5, 150, 105, 0.35);
+}
+
+
