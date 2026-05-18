@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Current ATTENDING Doctor (defaults to Dr. Smith)
     let currentDoctor = "Dr. Smith";
     let currentDoctorRole = "Attending ER";
+    let currentDoctorDept = "Emergency Medicine";
 
     // Initial State - Active Queue
     let queue = [
@@ -27,10 +28,14 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30", attendingDoctor: "Dr. House" }
     ];
 
-    // Clinical Events Timeline (Module 5)
+    // Clinical Events Timeline (Module 5) with Weekday scheduling
+    let selectedCalendarDay = 'Mon';
     let events = [
-        { id: 'E1', patientName: 'Marcus Aurelius', type: 'MRI', title: 'Brain CT Scan (Hypertensive Staging)', time: '15:30', doctor: 'Dr. House', priority: 'Urgent', status: 'upcoming' },
-        { id: 'E2', patientName: 'Clara Oswald', type: 'Lab Test', title: 'X-Ray of Right Ankle', time: '16:00', doctor: 'Dr. Smith', priority: 'Stable', status: 'upcoming' }
+        { id: 'E1', patientName: 'Marcus Aurelius', type: 'MRI', title: 'Brain CT Scan (Hypertensive Staging)', time: '15:30', doctor: 'Dr. House', priority: 'Urgent', status: 'upcoming', day: 'Mon' },
+        { id: 'E2', patientName: 'Clara Oswald', type: 'Lab Test', title: 'X-Ray of Right Ankle', time: '16:00', doctor: 'Dr. Smith', priority: 'Stable', status: 'upcoming', day: 'Mon' },
+        { id: 'E3', patientName: 'Marcus Aurelius', type: 'Surgery', title: 'Cardiac Bypass Procedure', time: '10:00', doctor: 'Dr. Smith', priority: 'Critical', status: 'upcoming', day: 'Tue' },
+        { id: 'E4', patientName: 'Jane Smith', type: 'Consultation', title: 'Orthopedic Fracture Review', time: '14:00', doctor: 'Dr. Smith', priority: 'Urgent', status: 'upcoming', day: 'Wed' },
+        { id: 'E5', patientName: 'Robert Johnson', type: 'Imaging', title: 'Chest Ultrasound Scan', time: '11:30', doctor: 'Dr. House', priority: 'Stable', status: 'upcoming', day: 'Thu' }
     ];
 
     // Transaction Undo Stack (Module 6)
@@ -78,6 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeProfileModal = document.getElementById('closeProfileModal');
     const cancelProfileBtn = document.getElementById('cancelProfileBtn');
     const profileForm = document.getElementById('profileForm');
+    const staffDepartmentSelect = document.getElementById('staffDepartment');
+    const staffDoctorRoleSelect = document.getElementById('staffDoctorRole');
+    const specialtyPatientList = document.getElementById('specialtyPatientList');
+    const activeDocRoleBadge = document.getElementById('activeDocRoleBadge');
 
     // Bed Attending Console Modal
     const bedConsoleModal = document.getElementById('bedConsoleModal');
@@ -303,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
                 break;
         }
+        renderSpecialtyDutyPanel();
     }
 
     // Render floor bed grid directory
@@ -315,14 +325,15 @@ document.addEventListener('DOMContentLoaded', () => {
         beds.forEach(bed => {
             const cell = document.createElement('div');
             cell.className = `bed-cell ${bed.status.toLowerCase()}`;
-            cell.style.cursor = bed.status === "Occupied" ? "pointer" : "default";
+            cell.style.cursor = "pointer";
             
-            // Allow clicking on any occupied bed card to see detailed attending info console
-            if (bed.status === "Occupied") {
-                cell.addEventListener('click', () => {
-                    openBedConsole(bed.id);
-                });
-            }
+            // Allow clicking on any bed cell inside Module 2 directory grid to open the emergency ward details modal
+            cell.addEventListener('click', () => {
+                renderWardDetails();
+                if (wardDetailsModal) {
+                    wardDetailsModal.classList.add('active');
+                }
+            });
 
             let statusIndicator = `<span class="bed-status-dot"></span>`;
             let bodyHTML = '';
@@ -491,6 +502,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const newBtn = currentBtn.cloneNode(true);
         currentBtn.parentNode.replaceChild(newBtn, currentBtn);
         
+        const traumaNotice = newBtn.previousElementSibling; // The <p> notice description element
+
+        // Show Send Trauma Code only when severity is dire (Level 1 or Level 2)
+        if (bed.severity <= 2) {
+            newBtn.style.display = "inline-flex";
+            if (traumaNotice) {
+                traumaNotice.innerHTML = "If the attending shift physician is unavailable or a high-acuity crisis occurs, broadcast an emergency trauma call to locate the nearest specialist.";
+                traumaNotice.style.color = "";
+                traumaNotice.style.fontWeight = "";
+            }
+        } else {
+            newBtn.style.display = "none";
+            if (traumaNotice) {
+                traumaNotice.innerHTML = "🏥 Patient is currently clinically stable. Trauma broadcast alert paging is deactivated for low-acuity cases.";
+                traumaNotice.style.color = "var(--color-sage-light)";
+                traumaNotice.style.fontWeight = "700";
+            }
+        }
+        
         // Attach click action to trigger emergency trauma logs
         newBtn.addEventListener('click', () => {
             triggerTraumaBroadcast(bed);
@@ -577,12 +607,70 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeBedConsoleModal) closeBedConsoleModal.addEventListener('click', closeConsole);
     if (closeBedConsoleBtn) closeBedConsoleBtn.addEventListener('click', closeConsole);
 
+    // Mapped Roles by Attending Specialty Department
+    const departmentRoles = {
+        "Emergency Medicine": [
+            "Junior ER Resident",
+            "Assistant ER Physician",
+            "Chief ER Resident",
+            "Head ER Director"
+        ],
+        "Cardiology": [
+            "Junior Cardiologist",
+            "Assistant Cardiologist",
+            "Consultant Cardiologist",
+            "Head Cardiologist & Surgeon"
+        ],
+        "Trauma Surgery": [
+            "Junior Trauma Fellow",
+            "Assistant Trauma Surgeon",
+            "Chief Trauma Surgeon",
+            "Head of Trauma Surgery"
+        ],
+        "Neurology": [
+            "Junior Neurologist",
+            "Assistant Neurophysician",
+            "Consulting Neurosurgeon",
+            "Head of Neurology"
+        ],
+        "Orthopedics": [
+            "Junior Orthopedic Resident",
+            "Assistant Orthopedic Surgeon",
+            "Chief Orthopedic Surgeon",
+            "Head of Orthopedic Trauma"
+        ]
+    };
+
+    function populateRolesForDepartment(deptVal) {
+        if (!staffDoctorRoleSelect) return;
+        staffDoctorRoleSelect.innerHTML = '';
+        const roles = departmentRoles[deptVal] || ["Attending ER"];
+        roles.forEach(role => {
+            const opt = document.createElement('option');
+            opt.value = role;
+            opt.textContent = role;
+            staffDoctorRoleSelect.appendChild(opt);
+        });
+    }
+
+    if (staffDepartmentSelect) {
+        staffDepartmentSelect.addEventListener('change', (e) => {
+            populateRolesForDepartment(e.target.value);
+        });
+    }
+
     // Click attending login header widget to toggle Profile Modal editor
     if (userProfileWidget) {
         userProfileWidget.addEventListener('click', () => {
             // Fill current inputs
             document.getElementById('staffDoctorName').value = currentDoctor;
-            document.getElementById('staffDoctorRole').value = currentDoctorRole;
+            
+            const dept = currentDoctorDept || "Emergency Medicine";
+            if (staffDepartmentSelect) staffDepartmentSelect.value = dept;
+            
+            populateRolesForDepartment(dept);
+            if (staffDoctorRoleSelect) staffDoctorRoleSelect.value = currentDoctorRole;
+            
             profileModal.classList.add('active');
         });
     }
@@ -599,19 +687,24 @@ document.addEventListener('DOMContentLoaded', () => {
         profileForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const newName = document.getElementById('staffDoctorName').value.trim();
-            const newRole = document.getElementById('staffDoctorRole').value.trim();
+            const newDept = staffDepartmentSelect ? staffDepartmentSelect.value : "Emergency Medicine";
+            const newRole = staffDoctorRoleSelect ? staffDoctorRoleSelect.value : "Attending ER";
 
             if (newName && newRole) {
                 currentDoctor = newName;
                 currentDoctorRole = newRole;
+                currentDoctorDept = newDept;
 
                 // Sync header DOM text elements
                 document.querySelector('.user-info strong').textContent = newName;
-                document.querySelector('.user-info span').textContent = newRole;
+                document.querySelector('.user-info span').textContent = `${newRole} (${newDept})`;
                 
                 // Automatically generate initials
                 const initialText = getInitials(newName);
                 document.querySelector('.avatar').textContent = initialText;
+
+                // Re-render Specialty Rota list with new credentials
+                renderSpecialtyDutyPanel();
 
                 closeProfile();
             }
@@ -711,17 +804,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Render Clinical Events Timeline (Module 5)
+    // Render Clinical Events Timeline (Module 5) filtered by selected calendar day
     function renderEvents() {
         if (!eventsTimelineList) return;
         eventsTimelineList.innerHTML = '';
 
-        if (events.length === 0) {
-            eventsTimelineList.innerHTML = `<div class="empty-records-msg">No clinical procedures scheduled.</div>`;
+        const filtered = events.filter(ev => ev.day === selectedCalendarDay);
+
+        if (filtered.length === 0) {
+            eventsTimelineList.innerHTML = `<div class="empty-records-msg" style="padding: 0.5rem; font-size: 0.88rem; opacity: 0.85;">No clinical procedures scheduled for ${selectedCalendarDay}day.</div>`;
             return;
         }
 
-        events.forEach(ev => {
+        filtered.forEach(ev => {
             const item = document.createElement('div');
             item.className = `event-timeline-item priority-${ev.priority.toLowerCase()}`;
             
@@ -820,9 +915,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateAnalytics() {
         const severityCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         
+        // Count triage waitlist queue patients
         queue.forEach(p => {
             if (severityCounts[p.severity] !== undefined) {
                 severityCounts[p.severity]++;
+            }
+        });
+
+        // Count admitted patients in ward beds
+        beds.forEach(b => {
+            if (b.status === "Occupied" && severityCounts[b.severity] !== undefined) {
+                severityCounts[b.severity]++;
             }
         });
 
@@ -834,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const count = severityCounts[i];
                 const pct = Math.max((count / maxVal) * 85, 4); 
                 bar.style.height = `${pct}%`;
-                bar.setAttribute('title', `${count} patient(s) in queue`);
+                bar.setAttribute('title', `${count} patient(s) total`);
             }
         }
     }
@@ -865,7 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="patient-id-badge">ID: #${p.id}</span>
                     </td>
                     <td style="font-weight: 500;">${p.age} yrs</td>
-                    <td style="color: var(--text-muted); font-size: 0.85rem;">${p.condition}</td>
+                    <td style="color: var(--text-muted); font-size: 0.95rem;">${p.condition}</td>
                     <td style="font-weight: 700; color: ${p.waitTime > 30 ? 'var(--color-l1)' : 'var(--text-charcoal)'};">
                         ${p.waitTime} mins
                     </td>
@@ -941,6 +1044,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBeds();
         renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
         renderWardDetails();
+        renderSpecialtyDutyPanel();
     };
 
     // Global Discharge/Release Patient from Ward (Mini Button)
@@ -975,6 +1079,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBeds();
         renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
         renderWardDetails();
+        renderSpecialtyDutyPanel();
     };
 
     // Global Discharge Patient from Ward Advisor Modal Row
@@ -1014,6 +1119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQueue();
         renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
         renderWardDetails();
+        renderSpecialtyDutyPanel();
     };
 
     // Modal Control Handlers (Register Patient)
@@ -1082,6 +1188,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Refresh button for Clinical Analytics (Module 3)
+    const btnRefreshAnalytics = document.getElementById('btnRefreshAnalytics');
+    if (btnRefreshAnalytics) {
+        btnRefreshAnalytics.addEventListener('click', () => {
+            const icon = btnRefreshAnalytics.querySelector('.spin-icon');
+            if (icon) {
+                icon.style.transform = 'rotate(360deg)';
+                icon.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                setTimeout(() => {
+                    icon.style.transform = 'none';
+                    icon.style.transition = 'none';
+                }, 600);
+            }
+            updateAnalytics();
+        });
+    }
+
     // Trigger Undo Action
     if (triggerUndoBtn) {
         triggerUndoBtn.addEventListener('click', () => {
@@ -1140,7 +1263,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 time: document.getElementById('eventTime').value,
                 doctor: document.getElementById('eventDoctor').value,
                 title: document.getElementById('eventTitle').value,
-                status: 'upcoming'
+                status: 'upcoming',
+                day: selectedCalendarDay
             };
 
             events.unshift(newEvent);
@@ -1205,8 +1329,8 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.innerHTML = `
             <span style="font-size: 1.5rem;">${icon}</span>
             <div>
-                <div style="font-weight: 800; font-size: 0.9rem; margin-bottom: 0.15rem; color: var(--text-charcoal);">New Patient Intake</div>
-                <div style="font-weight: 500; font-size: 0.78rem; opacity: 0.85; color: var(--text-charcoal);">
+                <div style="font-weight: 800; font-size: 1.05rem; margin-bottom: 0.15rem; color: var(--text-charcoal);">New Patient Intake</div>
+                <div style="font-weight: 500; font-size: 0.88rem; opacity: 0.85; color: var(--text-charcoal);">
                     ${patient.name} (${patient.age} yrs) &middot; ${getSeverityText(patient.severity)}
                 </div>
             </div>
@@ -1255,10 +1379,158 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQueue();
     }, 60000);
 
+    // Render Attending Specialist Patient Rota List (Module 5 Specialty integration)
+    function renderSpecialtyDutyPanel() {
+        if (!specialtyPatientList) return;
+        specialtyPatientList.innerHTML = '';
+        
+        // Update Doctor badge in card header
+        if (activeDocRoleBadge) {
+            activeDocRoleBadge.textContent = currentDoctorRole;
+        }
+
+        // Filter active patients assigned to beds whose condition matches active department
+        const matchingBeds = beds.filter(bed => {
+            if (bed.status !== "Occupied") return false;
+            
+            const dept = currentDoctorDept.toLowerCase();
+            const cond = bed.condition.toLowerCase();
+            
+            if (dept.includes("emergency")) {
+                return true; // ER matches all conditions
+            } else if (dept.includes("cardiology")) {
+                return cond.includes("cardiac") || cond.includes("chest") || cond.includes("heart") || cond.includes("angina") || cond.includes("hypertensive");
+            } else if (dept.includes("trauma")) {
+                return cond.includes("trauma") || cond.includes("bleeding") || cond.includes("gunshot") || cond.includes("laceration") || cond.includes("stab") || cond.includes("wound") || cond.includes("fracture");
+            } else if (dept.includes("neurology")) {
+                return cond.includes("hypertensive") || cond.includes("stroke") || cond.includes("brain") || cond.includes("neurological") || cond.includes("migraine") || cond.includes("headache");
+            } else if (dept.includes("orthopedics")) {
+                return cond.includes("fracture") || cond.includes("sprained") || cond.includes("ankle") || cond.includes("bone") || cond.includes("joint") || cond.includes("radius") || cond.includes("back");
+            }
+            return false;
+        });
+
+        if (matchingBeds.length === 0) {
+            specialtyPatientList.innerHTML = `
+                <div class="empty-records-msg" style="padding: 0.5rem; font-size: 0.88rem; opacity: 0.85;">
+                    No pending patients under ${currentDoctorDept} specialty.
+                </div>`;
+            return;
+        }
+
+        matchingBeds.forEach(bed => {
+            const item = document.createElement('div');
+            item.style.display = "flex";
+            item.style.alignItems = "center";
+            item.style.justifyContent = "space-between";
+            item.style.background = "rgba(255, 255, 255, 0.08)";
+            item.style.padding = "0.45rem 0.65rem";
+            item.style.borderRadius = "8px";
+            item.style.borderLeft = "4px solid var(--color-terracotta)";
+            item.style.boxShadow = "0 2px 5px rgba(0,0,0,0.05)";
+
+            item.innerHTML = `
+                <div style="display: flex; flex-direction: column; text-align: left; gap: 0.15rem;">
+                    <span style="font-weight: 800; font-size: 0.92rem; color: white;">
+                        ${bed.patient} <span class="badge sev-${bed.severity}" style="font-size: 0.72rem; padding: 0.05rem 0.25rem; font-weight: 800;">L${bed.severity}</span>
+                    </span>
+                    <span style="font-size: 0.82rem; opacity: 0.85; color: #ffedd5;">
+                        Bed: ${bed.name} &middot; ${bed.condition}
+                    </span>
+                </div>
+                <button class="btn-discharge-mini" style="font-size: 0.8rem; padding: 0.2rem 0.5rem; border-color: rgba(255,255,255,0.3); background-color: var(--color-sage-dark); font-weight: 800;" onclick="resolveSpecialistCase(${bed.id})">
+                    🩺 Treat Case
+                </button>
+            `;
+            specialtyPatientList.appendChild(item);
+        });
+    }
+
+    // Web Audio synthesizer tone for successful clinical resolution
+    function playTraumaSuccessSound() {
+        if (!toggleSound || !toggleSound.checked) return;
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+            osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+            gain.gain.setValueAtTime(0.06, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.4);
+        } catch (e) {}
+    }
+
+    // Resolve Specialist Case (Discharge patient matching doctor specialty)
+    window.resolveSpecialistCase = function(bedId) {
+        const bed = beds.find(b => b.id === bedId);
+        if (!bed || bed.status !== "Occupied") return;
+
+        const patientData = { ...bed };
+
+        // Execute treatment discharge
+        bed.status = "Available";
+        bed.patient = "";
+        bed.age = 0;
+        bed.severity = 0;
+        bed.condition = "";
+        bed.admittedAt = "";
+        bed.attendingDoctor = "";
+
+        // Record Undo Transaction
+        pushTransaction({
+            type: 'discharge',
+            data: { ...patientData }
+        });
+
+        // Trigger Success tone
+        playTraumaSuccessSound();
+
+        // Show clinical success alert toast
+        showIntakeToast({
+            name: patientData.patient,
+            age: patientData.age,
+            severity: 5, // Shows as green non-urgent sage badge style
+            condition: "Treated & Relieved by " + currentDoctor
+        });
+
+        // Sync view state
+        renderBeds();
+        renderSpecialtyDutyPanel();
+        if (wardDetailsModal.classList.contains('active')) {
+            renderWardDetails();
+        }
+    };
+
+    // Calendar Day selector click filtering
+    document.querySelectorAll('.cal-day').forEach(dayEl => {
+        dayEl.addEventListener('click', () => {
+            document.querySelectorAll('.cal-day').forEach(d => {
+                d.classList.remove('active');
+                d.style.background = 'rgba(255,255,255,0.05)';
+                d.style.border = '1px solid rgba(255,255,255,0.1)';
+                d.style.fontWeight = '600';
+            });
+            dayEl.classList.add('active');
+            dayEl.style.background = 'rgba(255,255,255,0.2)';
+            dayEl.style.border = '1px solid rgba(255,255,255,0.3)';
+            dayEl.style.fontWeight = '800';
+            
+            selectedCalendarDay = dayEl.getAttribute('data-day');
+            renderEvents();
+        });
+    });
+
     // Initial Dashboard Launch Staging
     renderQueue();
     renderBeds();
     renderRecentAdmissions();
     renderEvents();
     renderUndoStack();
+    renderSpecialtyDutyPanel();
 });
