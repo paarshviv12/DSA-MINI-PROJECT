@@ -3,95 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clinical Triage Dashboard</title>
+    <title>Clinical Triage & Allocation Hub</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Grain Overlay for Global Texture -->
+    <div class="noise-overlay"></div>
+
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
+        <!-- Top App Header -->
+        <header class="app-header">
             <div class="brand">
                 <div class="brand-icon">+</div>
-                <div>
+                <div class="brand-text">
                     <h1>Central Medical</h1>
-                    <span class="brand-subtitle">Triage & Allocation</span>
+                    <span class="brand-subtitle">Emergency Triage & Bed Allocation</span>
                 </div>
             </div>
-            <nav class="nav-menu">
-                <a href="#" class="nav-item active">Dashboard</a>
-                <a href="#" class="nav-item">Patient Records</a>
-                <a href="#" class="nav-item">Floor Directory</a>
-                <a href="#" class="nav-item">Analytics</a>
-                <a href="#" class="nav-item">Settings</a>
-            </nav>
+            
+            <div class="system-status">
+                <span class="status-pulse"></span>
+                <span class="status-text">System Live &middot; Real-Time Sync</span>
+            </div>
+
             <div class="user-profile">
-                <div class="avatar">Dr</div>
+                <div class="avatar">DS</div>
                 <div class="user-info">
                     <strong>Dr. Smith</strong>
                     <span>Attending ER</span>
                 </div>
             </div>
-        </aside>
+        </header>
 
-        <!-- Main Content -->
+        <!-- Main Workspace -->
         <main class="main-content">
-            <!-- Topbar -->
-            <header class="topbar">
-                <div class="page-title">
-                    <h2>Emergency Room Triage</h2>
-                    <span class="system-status"><span class="status-dot"></span> System Online &middot; Sync: Real-time</span>
+            <!-- Welcome Header Row -->
+            <div class="welcome-row">
+                <div class="welcome-text">
+                    <h2>Emergency Triage Center</h2>
+                    <p class="subtitle">High-fidelity clinical staging and bed assignment system.</p>
                 </div>
-                <div class="topbar-actions">
-                    <button class="btn-primary" id="openRegModal">Register Patient</button>
-                </div>
-            </header>
-
-            <!-- Dashboard Stats -->
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <div class="stat-label">Critical (L1-L2)</div>
-                    <div class="stat-value text-red" id="criticalWaitCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total Waiting</div>
-                    <div class="stat-value" id="totalWaitCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Wait Time</div>
-                    <div class="stat-value">12 <span class="stat-unit">min</span></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Available ER Beds</div>
-                    <div class="stat-value">6 <span class="stat-unit">/ 6</span></div>
+                <div class="welcome-actions">
+                    <button class="btn-primary" id="openRegModal">
+                        <span class="btn-icon">+</span> Register Patient
+                    </button>
                 </div>
             </div>
 
-            <!-- Queue Panel -->
-            <div class="panel">
+            <!-- Stats Bar -->
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper red-tint">⚠</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Critical (L1-L2)</div>
+                        <div class="stat-value text-red" id="criticalWaitCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper green-tint">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Waiting</div>
+                        <div class="stat-value" id="totalWaitCount">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper terracotta-tint">⏱</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Avg Wait Time</div>
+                        <div class="stat-value">12 <span class="stat-unit">min</span></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon-wrapper sage-tint">🛏</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Available ER Beds</div>
+                        <div class="stat-value" id="availableBedsStat">6 <span class="stat-unit">/ 6</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Triage Queue Panel (Main console) -->
+            <div class="panel triage-panel">
                 <div class="panel-header">
-                    <h3>Active Triage Queue</h3>
+                    <div class="panel-title-wrapper">
+                        <h3>Active Patient Triage Queue</h3>
+                        <p class="panel-subtitle">Sorted by clinical severity level, then time elapsed.</p>
+                    </div>
                     <div class="panel-actions">
-                        <button class="btn-secondary" id="admitBtn">Admit Next Priority</button>
+                        <button class="btn-secondary-action" id="admitBtn">Admit Next Priority</button>
                     </div>
                 </div>
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Priority</th>
-                                <th>Patient Name</th>
+                                <th>Clinical Severity</th>
+                                <th>Patient Name & ID</th>
                                 <th>Age</th>
                                 <th>Presenting Condition</th>
-                                <th>Time Waited</th>
-                                <th>Action</th>
+                                <th>Time Elapsed</th>
+                                <th style="text-align: right;">Clinical Action</th>
                             </tr>
                         </thead>
                         <tbody id="queueTableBody">
-                            <!-- Populated by JS -->
+                            <!-- Dynamically Populated by script.js -->
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- Dashboard Grid: Modular Card Navigation below Triage -->
+            <div class="dashboard-grid">
+                
+                <!-- Card 1: Patient Records (Sage Green Textured) -->
+                <div class="dashboard-card card-sage">
+                    <div class="card-texture"></div>
+                    <div class="card-content-wrapper">
+                        <div class="card-header-row">
+                            <span class="card-badge">Module 01</span>
+                            <h4>Patient Records</h4>
+                        </div>
+                        <p class="card-desc">Review and manage recent clinical admissions, diagnostic histories, and emergency records.</p>
+                        
+                        <div class="interactive-snippet records-snippet">
+                            <div class="search-bar-mini">
+                                <span class="search-icon">🔍</span>
+                                <input type="text" id="patientSearchInput" placeholder="Search admitted records..." />
+                            </div>
+                            <div class="recent-admissions-list" id="recentAdmissionsList">
+                                <!-- Populated dynamically when patient is admitted -->
+                                <div class="empty-records-msg">No patients admitted in this session yet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Floor Directory & Bed Allocation (Terracotta Textured) -->
+                <div class="dashboard-card card-terracotta">
+                    <div class="card-texture"></div>
+                    <div class="card-content-wrapper">
+                        <div class="card-header-row">
+                            <span class="card-badge">Module 02</span>
+                            <h4>Floor & Bed Directory</h4>
+                        </div>
+                        <p class="card-desc">Monitor live ER ward layouts, intensive care bed occupancy, and department capacities.</p>
+                        
+                        <div class="interactive-snippet beds-snippet">
+                            <div class="beds-grid" id="bedsGrid">
+                                <!-- Dynamically Rendered Bed States -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Clinical Analytics (Beige/Cream Glassmorphic) -->
+                <div class="dashboard-card card-cream">
+                    <div class="card-content-wrapper">
+                        <div class="card-header-row">
+                            <span class="card-badge color-terracotta">Module 03</span>
+                            <h4>Clinical Analytics</h4>
+                        </div>
+                        <p class="card-desc">Real-time charts depicting patient flow, triage distribution, and average operational wait times.</p>
+                        
+                        <div class="interactive-snippet analytics-snippet">
+                            <div class="chart-container">
+                                <div class="chart-bar-wrapper">
+                                    <div class="chart-bar-fill level-1" style="height: 20%;" id="barL1"></div>
+                                    <span class="chart-bar-label">L1</span>
+                                </div>
+                                <div class="chart-bar-wrapper">
+                                    <div class="chart-bar-fill level-2" style="height: 40%;" id="barL2"></div>
+                                    <span class="chart-bar-label">L2</span>
+                                </div>
+                                <div class="chart-bar-wrapper">
+                                    <div class="chart-bar-fill level-3" style="height: 60%;" id="barL3"></div>
+                                    <span class="chart-bar-label">L3</span>
+                                </div>
+                                <div class="chart-bar-wrapper">
+                                    <div class="chart-bar-fill level-4" style="height: 30%;" id="barL4"></div>
+                                    <span class="chart-bar-label">L4</span>
+                                </div>
+                                <div class="chart-bar-wrapper">
+                                    <div class="chart-bar-fill level-5" style="height: 10%;" id="barL5"></div>
+                                    <span class="chart-bar-label">L5</span>
+                                </div>
+                            </div>
+                            <div class="chart-legend">
+                                <span>Severity Level Distribution</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Triage Controls & Settings (Beige/Cream Glassmorphic) -->
+                <div class="dashboard-card card-cream">
+                    <div class="card-content-wrapper">
+                        <div class="card-header-row">
+                            <span class="card-badge color-sage">Module 04</span>
+                            <h4>System Controls</h4>
+                        </div>
+                        <p class="card-desc">Adjust administrative rules, enable sound dispatch alerts, or customize auto-allocation algorithms.</p>
+                        
+                        <div class="interactive-snippet controls-snippet">
+                            <div class="control-toggle-row">
+                                <span class="control-label">Auto-Allocate Beds</span>
+                                <label class="switch-toggle">
+                                    <input type="checkbox" checked id="toggleAutoBeds">
+                                    <span class="slider-toggle"></span>
+                                </label>
+                            </div>
+                            <div class="control-toggle-row">
+                                <span class="control-label">Critical Dispatch Sound</span>
+                                <label class="switch-toggle">
+                                    <input type="checkbox" id="toggleSound">
+                                    <span class="slider-toggle"></span>
+                                </label>
+                            </div>
+                            <div class="control-toggle-row">
+                                <span class="control-label">Fast-Track Level 5 Patients</span>
+                                <label class="switch-toggle">
+                                    <input type="checkbox" id="toggleFastTrack">
+                                    <span class="slider-toggle"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
     </div>
@@ -100,39 +239,42 @@
     <div class="modal-overlay" id="regModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>Register Patient</h3>
+                <div>
+                    <h3>Register New Patient</h3>
+                    <p class="modal-subtitle">Ensure parameters align with triage protocol rules.</p>
+                </div>
                 <button class="close-btn" id="closeRegModal">&times;</button>
             </div>
             <form id="registerForm">
                 <div class="modal-body">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label>Patient Name</label>
+                            <label>Patient Full Name</label>
                             <input type="text" id="pName" required placeholder="e.g. Jane Doe">
                         </div>
                         <div class="form-group">
-                            <label>Age</label>
-                            <input type="number" id="pAge" required placeholder="e.g. 45">
+                            <label>Age (Years)</label>
+                            <input type="number" id="pAge" required placeholder="e.g. 45" min="0" max="130">
                         </div>
                         <div class="form-group full-width">
-                            <label>Triage Level (Severity)</label>
+                            <label>Triage Priority Level</label>
                             <select id="pSeverity" required>
-                                <option value="1">Level 1 - Resuscitation (Immediate)</option>
-                                <option value="2">Level 2 - Emergent (15 mins)</option>
-                                <option value="3">Level 3 - Urgent (30 mins)</option>
-                                <option value="4">Level 4 - Less Urgent (60 mins)</option>
-                                <option value="5">Level 5 - Non-Urgent (120 mins)</option>
+                                <option value="1">Level 1 - Resuscitation (Immediate Danger)</option>
+                                <option value="2">Level 2 - Emergent (High Risk / Pain)</option>
+                                <option value="3">Level 3 - Urgent (Stable / Moderately Ill)</option>
+                                <option value="4">Level 4 - Less Urgent (Minor Injury)</option>
+                                <option value="5">Level 5 - Non-Urgent (Routine Symptom)</option>
                             </select>
                         </div>
                         <div class="form-group full-width">
-                            <label>Presenting Condition</label>
-                            <input type="text" id="pCondition" required placeholder="e.g. Cardiac arrest, severe pain, etc.">
+                            <label>Presenting Chief Complaint</label>
+                            <input type="text" id="pCondition" required placeholder="e.g. Sharp radiating chest pain, severe dyspnea">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" id="cancelRegBtn">Cancel</button>
-                    <button type="submit" class="btn-primary">Register & Triage</button>
+                    <button type="submit" class="btn-primary">Finalize Staging & Triage</button>
                 </div>
             </form>
         </div>
