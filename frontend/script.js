@@ -7,14 +7,14 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 1004, name: "Emily Davis", age: 34, severity: 5, condition: "Minor Laceration", waitTime: 85 }
     ];
 
-    // Bed Directory State (Module 2)
+    // Bed Directory State with Full Metadata (Module 2 & Advisor)
     let beds = [
-        { id: 101, name: "Bed 101", status: "Occupied", patient: "Marcus Aurelius", severity: 2 },
-        { id: 102, name: "Bed 102", status: "Available", patient: "", severity: 0 },
-        { id: 103, name: "Bed 103", status: "Occupied", patient: "Clara Oswald", severity: 4 },
-        { id: 104, name: "Bed 104", status: "Available", patient: "", severity: 0 },
-        { id: 105, name: "Bed 105", status: "Available", patient: "", severity: 0 },
-        { id: 106, name: "Bed 106", status: "Available", patient: "", severity: 0 }
+        { id: 101, name: "Bed 101", status: "Occupied", patient: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis" },
+        { id: 102, name: "Bed 102", status: "Available", patient: "", age: 0, severity: 0, condition: "" },
+        { id: 103, name: "Bed 103", status: "Occupied", patient: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle" },
+        { id: 104, name: "Bed 104", status: "Available", patient: "", age: 0, severity: 0, condition: "" },
+        { id: 105, name: "Bed 105", status: "Available", patient: "", age: 0, severity: 0, condition: "" },
+        { id: 106, name: "Bed 106", status: "Available", patient: "", age: 0, severity: 0, condition: "" }
     ];
 
     // Recent Admissions Log (Module 1)
@@ -29,13 +29,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalWaitCount = document.getElementById('totalWaitCount');
     const availableBedsStat = document.getElementById('availableBedsStat');
     
-    // Modal Controls
+    // Modal Controls (Register Patient)
     const regModal = document.getElementById('regModal');
     const openRegModalBtn = document.getElementById('openRegModal');
     const closeRegModalBtn = document.getElementById('closeRegModal');
     const cancelRegBtn = document.getElementById('cancelRegBtn');
     const registerForm = document.getElementById('registerForm');
     const admitBtn = document.getElementById('admitBtn');
+
+    // Ward Advisor Modal Hooks
+    const bedsStatCard = document.getElementById('bedsStatCard');
+    const wardDetailsModal = document.getElementById('wardDetailsModal');
+    const closeWardDetailsModal = document.getElementById('closeWardDetailsModal');
+    const closeWardDetailsBtn = document.getElementById('closeWardDetailsBtn');
+    const wardBedsContainer = document.getElementById('wardBedsContainer');
 
     // Snippets Hooks
     const bedsGrid = document.getElementById('bedsGrid');
@@ -67,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const gain = ctx.createGain();
             
             osc.type = 'sine';
-            // Subtle, premium medical dispatch tone: A5 (880Hz) to C6 (1046.5Hz)
             osc.frequency.setValueAtTime(880, ctx.currentTime);
             osc.frequency.setValueAtTime(1046.5, ctx.currentTime + 0.12);
             
@@ -129,6 +135,106 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Render Ward Details Modal List (Early Discharge Advisor)
+    function renderWardDetails() {
+        if (!wardBedsContainer) return;
+        wardBedsContainer.innerHTML = '';
+
+        beds.forEach(bed => {
+            const row = document.createElement('div');
+            row.className = `ward-bed-row ${bed.status.toLowerCase()}`;
+
+            let labelHTML = `
+                <div class="ward-bed-label">
+                    <span class="ward-bed-icon">🛏</span>
+                    <span class="ward-bed-name">${bed.name}</span>
+                </div>
+            `;
+
+            let infoHTML = '';
+            let advisorHTML = '';
+            let actionHTML = '';
+
+            if (bed.status === "Occupied") {
+                let stagingText = '';
+                let stagingClass = '';
+                let stagingDesc = '';
+                let btnClass = '';
+                let btnDisabled = '';
+                let btnLabel = '';
+
+                // Safe Early Discharge Assessment Staging Rules based on clinical severity
+                if (bed.severity <= 2) {
+                    stagingText = "🛑 Discharge Forbidden";
+                    stagingClass = "forbidden";
+                    stagingDesc = "Critical emergency case. Continuous physiological monitoring required.";
+                    btnClass = "disabled";
+                    btnDisabled = "disabled";
+                    btnLabel = "Discharge Prohibited";
+                } else if (bed.severity === 3) {
+                    stagingText = "⚠️ Conditional Release";
+                    stagingClass = "conditional";
+                    stagingDesc = "Stable but urgent condition. Can relocate if bed is needed for critical emergency intakes.";
+                    btnClass = "eligible-amber";
+                    btnDisabled = "";
+                    btnLabel = "Safe Relocation";
+                } else {
+                    stagingText = "✅ Safe Early Discharge";
+                    stagingClass = "safe";
+                    stagingDesc = "Low-severity triage level. Early release highly recommended to optimize ER bed capacity.";
+                    btnClass = "eligible-green";
+                    btnDisabled = "";
+                    btnLabel = "Authorize Release";
+                }
+
+                infoHTML = `
+                    <div class="ward-patient-info">
+                        <span class="ward-patient-name">${bed.patient} (${bed.age} yrs)</span>
+                        <span class="ward-patient-meta">${bed.condition}</span>
+                    </div>
+                `;
+
+                advisorHTML = `
+                    <div class="ward-advisor-cell">
+                        <span class="ward-advisor-status ${stagingClass}">${stagingText}</span>
+                        <span class="ward-advisor-desc">${stagingDesc}</span>
+                    </div>
+                `;
+
+                actionHTML = `
+                    <div class="ward-action-cell">
+                        <button class="btn-discharge-advisor ${btnClass}" ${btnDisabled} onclick="dischargeBed(${bed.id})">
+                            ${btnLabel}
+                        </button>
+                    </div>
+                `;
+            } else {
+                infoHTML = `
+                    <div class="ward-patient-info">
+                        <span class="empty-bed-status">Ready for Patient Placement</span>
+                        <span class="ward-patient-meta">Intake capacity available</span>
+                    </div>
+                `;
+
+                advisorHTML = `
+                    <div class="ward-advisor-cell">
+                        <span class="ward-advisor-status safe">✅ Available Capacity</span>
+                        <span class="ward-advisor-desc">Available for immediate clinical staging allocation.</span>
+                    </div>
+                `;
+
+                actionHTML = `
+                    <div class="ward-action-cell">
+                        <button class="btn-discharge-advisor disabled" disabled>Bed is Empty</button>
+                    </div>
+                `;
+            }
+
+            row.innerHTML = labelHTML + infoHTML + advisorHTML + actionHTML;
+            wardBedsContainer.appendChild(row);
+        });
+    }
+
     // Render Recent Admissions List (with filter support)
     function renderRecentAdmissions(filterText = '') {
         if (!recentAdmissionsList) return;
@@ -166,21 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateAnalytics() {
         const severityCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
         
-        // Count in queue
         queue.forEach(p => {
             if (severityCounts[p.severity] !== undefined) {
                 severityCounts[p.severity]++;
             }
         });
 
-        // Calculate max to scale the bars beautifully
         const maxVal = Math.max(...Object.values(severityCounts), 1);
 
         for (let i = 1; i <= 5; i++) {
             const bar = document.getElementById(`barL${i}`);
             if (bar) {
                 const count = severityCounts[i];
-                // Base height is 6px, scale up to 100%
                 const pct = Math.max((count / maxVal) * 85, 4); 
                 bar.style.height = `${pct}%`;
                 bar.setAttribute('title', `${count} patient(s) in queue`);
@@ -190,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Render Main Patients Queue Table
     function renderQueue() {
-        // Sort: Severity Level (1 is highest priority), then Wait Time (longer wait is served first)
         queue.sort((a, b) => {
             if (a.severity !== b.severity) return a.severity - b.severity;
             return b.waitTime - a.waitTime; 
@@ -227,33 +329,32 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Update stats
         if (totalWaitCount) totalWaitCount.textContent = queue.length;
         if (criticalWaitCount) criticalWaitCount.textContent = criticalCount;
 
         updateAnalytics();
     }
 
-    // Global Admit Patient function - hooks to button & trigger list
+    // Global Admit Patient function
     window.admitPatient = function(id) {
         const patientIndex = queue.findIndex(p => p.id === id);
         if (patientIndex === -1) return;
 
         const patient = queue[patientIndex];
         
-        // Handle bed allocation if auto-beds enabled
         let assignedBed = null;
         if (toggleAutoBeds && toggleAutoBeds.checked) {
             const freeBed = beds.find(b => b.status === "Available");
             if (freeBed) {
                 freeBed.status = "Occupied";
                 freeBed.patient = patient.name;
+                freeBed.age = patient.age;
                 freeBed.severity = patient.severity;
+                freeBed.condition = patient.condition;
                 assignedBed = freeBed;
             }
         }
 
-        // Add to recent admissions list
         const timeNow = new Date();
         const timeStr = `${String(timeNow.getHours()).padStart(2, '0')}:${String(timeNow.getMinutes()).padStart(2, '0')}`;
         
@@ -267,37 +368,62 @@ document.addEventListener('DOMContentLoaded', () => {
             timeStr: timeStr
         });
 
-        // Remove from waiting queue
         queue.splice(patientIndex, 1);
         
         renderQueue();
         renderBeds();
         renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+        renderWardDetails();
     };
 
-    // Global Discharge/Release Patient from Ward
+    // Global Discharge/Release Patient from Ward (Mini Button)
     window.dischargePatient = function(id) {
         const index = recentAdmissions.findIndex(a => a.id === id);
         if (index === -1) return;
         
         const record = recentAdmissions[index];
 
-        // Free up the bed
         const occupiedBed = beds.find(b => b.name === record.bed && b.status === "Occupied");
         if (occupiedBed) {
             occupiedBed.status = "Available";
             occupiedBed.patient = "";
+            occupiedBed.age = 0;
             occupiedBed.severity = 0;
+            occupiedBed.condition = "";
         }
 
-        // Remove from admissions log
         recentAdmissions.splice(index, 1);
 
         renderBeds();
         renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+        renderWardDetails();
     };
 
-    // Modal Control Handlers
+    // Global Discharge Patient from Ward Advisor Modal Row
+    window.dischargeBed = function(bedId) {
+        const bed = beds.find(b => b.id === bedId && b.status === "Occupied");
+        if (!bed) return;
+
+        // Clean up from recent admissions log
+        const admissionIndex = recentAdmissions.findIndex(a => a.bed === bed.name);
+        if (admissionIndex !== -1) {
+            recentAdmissions.splice(admissionIndex, 1);
+        }
+
+        // Release the bed
+        bed.status = "Available";
+        bed.patient = "";
+        bed.age = 0;
+        bed.severity = 0;
+        bed.condition = "";
+
+        renderBeds();
+        renderQueue();
+        renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+        renderWardDetails();
+    };
+
+    // Modal Control Handlers (Register Patient)
     if (openRegModalBtn) {
         openRegModalBtn.addEventListener('click', () => {
             regModal.classList.add('active');
@@ -313,6 +439,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (closeRegModalBtn) closeRegModalBtn.addEventListener('click', closeModal);
     if (cancelRegBtn) cancelRegBtn.addEventListener('click', closeModal);
+
+    // Modal Control Handlers (Ward Directory & Advisor)
+    if (bedsStatCard && wardDetailsModal) {
+        bedsStatCard.addEventListener('click', () => {
+            renderWardDetails();
+            wardDetailsModal.classList.add('active');
+        });
+    }
+
+    const closeWardModal = () => {
+        if (wardDetailsModal) {
+            wardDetailsModal.classList.remove('active');
+        }
+    };
+
+    if (closeWardDetailsModal) closeWardDetailsModal.addEventListener('click', closeWardModal);
+    if (closeWardDetailsBtn) closeWardDetailsBtn.addEventListener('click', closeWardModal);
 
     // Form Submit (Registering patient)
     if (registerForm) {
@@ -331,7 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             queue.push(newPatient);
             
-            // If critical (Level 1 or 2), trigger dynamic audio beep chime
             if (newSeverity <= 2) {
                 playEmergencyChime();
             }
@@ -360,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Increment wait times (mocked to 10 seconds for real-time dashboard feel)
+    // Increment wait times
     setInterval(() => {
         queue = queue.map(p => ({ ...p, waitTime: p.waitTime + 1 }));
         renderQueue();

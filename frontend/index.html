@@ -74,10 +74,10 @@
                         <div class="stat-value">12 <span class="stat-unit">min</span></div>
                     </div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card clickable-stat-card" id="bedsStatCard">
                     <div class="stat-icon-wrapper sage-tint">🛏</div>
                     <div class="stat-content">
-                        <div class="stat-label">Available ER Beds</div>
+                        <div class="stat-label">Available ER Beds <span class="click-indicator">(Click to view)</span></div>
                         <div class="stat-value" id="availableBedsStat">6 <span class="stat-unit">/ 6</span></div>
                     </div>
                 </div>
@@ -277,6 +277,27 @@
                     <button type="submit" class="btn-primary">Finalize Staging & Triage</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Emergency Ward Occupancy & Discharge Advisor Modal -->
+    <div class="modal-overlay" id="wardDetailsModal">
+        <div class="modal ward-modal">
+            <div class="modal-header">
+                <div>
+                    <h3>Emergency Ward Directory & Discharge Advisor</h3>
+                    <p class="modal-subtitle">Assess patient staging severity for safe early discharge actions.</p>
+                </div>
+                <button class="close-btn" id="closeWardDetailsModal">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div class="ward-beds-container" id="wardBedsContainer">
+                    <!-- Populated dynamically by script.js -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeWardDetailsBtn">Close Directory</button>
+            </div>
         </div>
     </div>
 

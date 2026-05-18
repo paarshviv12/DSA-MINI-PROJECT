@@ -1202,3 +1202,220 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* -------------------------------------------------------------
+   Emergency Ward Directory & Discharge Advisor Styling
+   ------------------------------------------------------------- */
+
+/* Clickable Stats Card */
+.clickable-stat-card {
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    border: 1px solid rgba(99, 120, 101, 0.3) !important;
+}
+
+.clickable-stat-card:hover {
+    border-color: var(--color-sage) !important;
+    background-color: var(--color-sage-light) !important;
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+}
+
+.click-indicator {
+    font-size: 0.62rem;
+    color: var(--color-sage);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    margin-left: 0.35rem;
+    opacity: 0.85;
+}
+
+/* Ward Modal Layout */
+.modal.ward-modal {
+    max-width: 820px;
+    width: 90%;
+}
+
+.ward-beds-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.25rem 0;
+}
+
+/* Bed Row Staging */
+.ward-bed-row {
+    display: grid;
+    grid-template-columns: 120px 1.5fr 1.35fr 1.15fr;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    border: var(--border-soft);
+    background-color: var(--color-cream-card);
+    transition: all 0.25s ease;
+}
+
+.ward-bed-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(100, 90, 80, 0.06);
+}
+
+.ward-bed-row.available {
+    background-color: var(--color-sage-light);
+    border-color: rgba(99, 120, 101, 0.18);
+}
+
+.ward-bed-row.occupied {
+    background-color: var(--color-cream-card);
+    border-color: rgba(175, 165, 145, 0.3);
+}
+
+/* Bed Identifier Label */
+.ward-bed-label {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.ward-bed-icon {
+    font-size: 1.35rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+}
+
+.ward-bed-name {
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    color: var(--text-charcoal);
+}
+
+/* Patient Details Staging */
+.ward-patient-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.ward-patient-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-charcoal);
+    letter-spacing: -0.01em;
+}
+
+.ward-patient-meta {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+}
+
+.empty-bed-status {
+    color: var(--color-sage-dark);
+    font-weight: 600;
+    font-size: 0.88rem;
+    font-style: italic;
+    opacity: 0.8;
+}
+
+/* Clinical Discharge Staging Advisor */
+.ward-advisor-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.ward-advisor-status {
+    font-size: 0.76rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.ward-advisor-status.forbidden {
+    color: var(--color-l1);
+}
+
+.ward-advisor-status.conditional {
+    color: var(--color-l3);
+}
+
+.ward-advisor-status.safe {
+    color: var(--color-l4);
+}
+
+.ward-advisor-desc {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+    line-height: 1.3;
+}
+
+/* Clinical Staging Discharge Button */
+.ward-action-cell {
+    text-align: right;
+}
+
+.btn-discharge-advisor {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.btn-discharge-advisor.disabled {
+    background-color: var(--color-beige-dark);
+    color: var(--text-light);
+    cursor: not-allowed;
+    opacity: 0.65;
+    border: 1px solid rgba(175, 165, 145, 0.25);
+}
+
+.btn-discharge-advisor.eligible-amber {
+    background-color: #fef3c7;
+    color: #d97706;
+    border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.btn-discharge-advisor.eligible-amber:hover {
+    background-color: #d97706;
+    color: white;
+    box-shadow: 0 4px 10px rgba(217, 119, 6, 0.2);
+}
+
+.btn-discharge-advisor.eligible-green {
+    background-color: var(--color-sage-light);
+    color: var(--color-sage-dark);
+    border: 1px solid rgba(99, 120, 101, 0.3);
+}
+
+.btn-discharge-advisor.eligible-green:hover {
+    background-color: var(--color-sage);
+    color: white;
+    box-shadow: 0 4px 10px rgba(99, 120, 101, 0.2);
+}
+
+/* Responsiveness for Ward Modal Directory */
+@media (max-width: 768px) {
+    .ward-bed-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 1.25rem;
+    }
+    .ward-action-cell {
+        text-align: left;
+    }
+    .btn-discharge-advisor {
+        width: auto;
+        padding: 0.5rem 1.5rem;
+    }
+}
+
