@@ -370,7 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let labelHTML = `
                 <div class="ward-bed-label">
                     <span class="ward-bed-icon">🛏</span>
-                    <span class="ward-bed-name clickable-bed-trigger" onclick="openBedConsole(${bed.id})" title="View attending physician, admitted time, or call trauma specialists.">${bed.name}</span>
+                    <span class="ward-bed-name" style="font-weight: 800; color: var(--color-terracotta);">${bed.name}</span>
                 </div>
             `;
 
@@ -379,6 +379,16 @@ document.addEventListener('DOMContentLoaded', () => {
             let actionHTML = '';
 
             if (bed.status === "Occupied") {
+                // Make the entire row act as a clickable tab
+                row.style.cursor = "pointer";
+                row.title = "Click tab to view attending physician, time log, or call specialists";
+                row.addEventListener('click', (e) => {
+                    if (e.target.closest('.ward-action-cell') || e.target.closest('.btn-discharge-advisor')) {
+                        return; // Prevent modal opening when clicking discharge action
+                    }
+                    openBedConsole(bed.id);
+                });
+
                 let stagingText = '';
                 let stagingClass = '';
                 let stagingDesc = '';

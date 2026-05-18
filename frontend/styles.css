@@ -1272,7 +1272,16 @@ body {
 .ward-bed-row.occupied {
     background-color: var(--color-cream-card);
     border-color: rgba(175, 165, 145, 0.3);
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.ward-bed-row.occupied:hover {
+    border-color: rgba(211, 60, 42, 0.45);
+    background-color: #f6f3eb; /* Soft linen shift */
+    box-shadow: 0 6px 18px rgba(211, 60, 42, 0.07);
+    transform: translateY(-2px);
+}
+
 
 /* Bed Identifier Label */
 .ward-bed-label {
