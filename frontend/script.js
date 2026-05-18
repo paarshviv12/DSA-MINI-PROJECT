@@ -1181,6 +1181,80 @@ document.addEventListener('DOMContentLoaded', () => {
         renderQueue();
     }, 10000);
 
+    // List of realistic clinical patient complaints mapped by triage priority level
+    const mockComplaints = {
+        1: ["Cardiac Arrest", "Anaphylaxis & Shock", "Severe Respiratory Failure", "Major Trauma & Hemorrhage"],
+        2: ["Severe Chest Pain", "Hypertensive Crisis", "Acute Dyspnea", "Compound Fracture with Bleeding"],
+        3: ["Fractured Radius", "Severe Dehydration", "Acute Abdominal Pain", "High Fever with Chills"],
+        4: ["Sprained Ankle", "Severe Migraine Headache", "Moderate Asthma Flare-up", "Deep Laceration"],
+        5: ["Minor Laceration", "Sore Throat & Cough", "Mild Skin Rash", "Low-grade Fever"]
+    };
+
+    const mockNames = [
+        "James Carter", "Maria Gonzalez", "Sarah Jenkins", "David Chen", 
+        "Aisha Rahman", "Liam O'Connor", "Elena Petrova", "Bruce Wayne", 
+        "Selina Kyle", "Arthur Dent", "Diana Prince", "Peter Parker",
+        "Wanda Maximoff", "Tony Stark", "Steve Rogers", "Natasha Romanoff"
+    ];
+
+    function showIntakeToast(patient) {
+        const toast = document.createElement('div');
+        toast.className = `intake-toast ${patient.severity <= 2 ? 'critical' : ''}`;
+        
+        let icon = patient.severity <= 2 ? '🚨' : '🏥';
+        toast.innerHTML = `
+            <span style="font-size: 1.5rem;">${icon}</span>
+            <div>
+                <div style="font-weight: 800; font-size: 0.9rem; margin-bottom: 0.15rem; color: var(--text-charcoal);">New Patient Intake</div>
+                <div style="font-weight: 500; font-size: 0.78rem; opacity: 0.85; color: var(--text-charcoal);">
+                    ${patient.name} (${patient.age} yrs) &middot; ${getSeverityText(patient.severity)}
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 4000);
+    }
+
+    // Keep on adding a new patient every 1 minute (60000 ms)
+    setInterval(() => {
+        const randomSeverity = Math.floor(Math.random() * 5) + 1; // Triage Level 1 to 5
+        const name = mockNames[Math.floor(Math.random() * mockNames.length)];
+        const age = Math.floor(Math.random() * 68) + 18; // Age 18 to 85
+        
+        const complaintsForSev = mockComplaints[randomSeverity];
+        const condition = complaintsForSev[Math.floor(Math.random() * complaintsForSev.length)];
+
+        const newSimPatient = {
+            id: Math.floor(Math.random() * 9000) + 1000,
+            name: name,
+            age: age,
+            severity: randomSeverity,
+            condition: condition,
+            waitTime: 0
+        };
+
+        queue.push(newSimPatient);
+
+        // Record Undo Transaction
+        pushTransaction({
+            type: 'register',
+            data: { ...newSimPatient }
+        });
+
+        // Trigger Sound Alert for Critical L1/L2
+        if (randomSeverity <= 2) {
+            playEmergencyChime();
+        }
+
+        // Show toast alert
+        showIntakeToast(newSimPatient);
+
+        renderQueue();
+    }, 60000);
+
     // Initial Dashboard Launch Staging
     renderQueue();
     renderBeds();

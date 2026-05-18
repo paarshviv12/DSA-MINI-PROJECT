@@ -1598,5 +1598,44 @@ body {
     }
 }
 
+/* Intake Notification Toasts */
+.intake-toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background-color: var(--color-beige-dark);
+    color: var(--text-charcoal);
+    border-left: 5px solid var(--color-terracotta);
+    padding: 0.9rem 1.4rem;
+    border-radius: 10px;
+    box-shadow: 0 12px 35px rgba(44, 42, 38, 0.18);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-weight: 700;
+    font-size: 0.86rem;
+    border: 1px solid rgba(175, 165, 145, 0.25);
+    animation: slide-toast 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), fade-toast 0.45s ease 3.5s forwards;
+    pointer-events: none;
+    font-family: 'Outfit', sans-serif;
+}
+
+.intake-toast.critical {
+    border-left-color: var(--color-l1);
+    background-color: #fef2f2;
+    border-color: rgba(239, 68, 68, 0.25);
+}
+
+@keyframes slide-toast {
+    from { transform: translateX(130%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-toast {
+    to { opacity: 0; transform: translateY(12px); }
+}
+
+
 
 
