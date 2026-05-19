@@ -117,24 +117,19 @@
             <div class="dashboard-grid">
                 
                 <!-- Card 1: Patient Records (Sage Green Textured) -->
-                <div class="dashboard-card card-sage">
+                <div class="dashboard-card card-sage" id="module01Card" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
                     <div class="card-texture"></div>
-                    <div class="card-content-wrapper">
+                    <div class="card-content-wrapper" style="pointer-events: none;">
                         <div class="card-header-row">
                             <span class="card-badge">Module 01</span>
                             <h4>Patient Records</h4>
                         </div>
                         <p class="card-desc">Review and manage recent clinical admissions, diagnostic histories, and emergency records.</p>
                         
-                        <div class="interactive-snippet records-snippet">
-                            <div class="search-bar-mini">
-                                <span class="search-icon">🔍</span>
-                                <input type="text" id="patientSearchInput" placeholder="Search admitted records..." />
-                            </div>
-                            <div class="recent-admissions-list" id="recentAdmissionsList">
-                                <!-- Populated dynamically when patient is admitted -->
-                                <div class="empty-records-msg">No patients admitted in this session yet.</div>
-                            </div>
+                        <div class="interactive-snippet records-snippet" style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem; pointer-events: none;">
+                            <span style="font-size: 2.2rem; display: block; margin-bottom: 0.2rem;">📂</span>
+                            <span style="font-weight: 700; color: var(--text-charcoal); font-size: 0.95rem;">Tap to Open Master Directory</span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted); opacity: 0.8;">View all active and historical patient entries</span>
                         </div>
                     </div>
                 </div>
@@ -397,6 +392,31 @@
         </div>
     </div>
 
+    <!-- Master Records Directory Modal -->
+    <div class="modal-overlay" id="recordsHistoryModal">
+        <div class="modal ward-modal" style="max-width: 650px;">
+            <div class="modal-header">
+                <div>
+                    <h3>Master Patient Records Directory</h3>
+                    <p class="modal-subtitle">Historical log of all admitted and discharged patients.</p>
+                </div>
+                <button class="close-btn" id="closeRecordsHistoryModal">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                <div class="search-bar-mini" style="margin-bottom: 1rem; width: 100%; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 0.8rem;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="patientSearchInput" placeholder="Search admitted or released records by name, bed, or condition..." style="width: 100%; border: none; outline: none; background: transparent; font-family: inherit; font-size: 0.9rem;" />
+                </div>
+                <div class="recent-admissions-list" id="recentAdmissionsList" style="max-height: none; overflow-y: visible;">
+                    <!-- Populated dynamically -->
+                    <div class="empty-records-msg">No records found.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="closeRecordsHistoryBtn">Close Directory</button>
+            </div>
+        </div>
+    </div>
     <!-- Schedule Event Modal -->
     <div class="modal-overlay" id="eventModal">
         <div class="modal">

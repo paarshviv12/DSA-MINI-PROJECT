@@ -62,6 +62,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const registerForm = document.getElementById('registerForm');
     const admitBtn = document.getElementById('admitBtn');
 
+    // Records History Modal Hooks (Module 1)
+    const module01Card = document.getElementById('module01Card');
+    const recordsHistoryModal = document.getElementById('recordsHistoryModal');
+    const closeRecordsHistoryModal = document.getElementById('closeRecordsHistoryModal');
+    const closeRecordsHistoryBtn = document.getElementById('closeRecordsHistoryBtn');
+
     // Ward Advisor Modal Hooks
     const bedsStatCard = document.getElementById('bedsStatCard');
     const wardDetailsModal = document.getElementById('wardDetailsModal');
@@ -1156,6 +1162,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (closeRegModalBtn) closeRegModalBtn.addEventListener('click', closeModal);
     if (cancelRegBtn) cancelRegBtn.addEventListener('click', closeModal);
+
+    // Modal Control Handlers (Master Records Directory Module 1)
+    if (module01Card && recordsHistoryModal) {
+        module01Card.addEventListener('click', () => {
+            renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
+            recordsHistoryModal.classList.add('active');
+        });
+    }
+
+    const closeRecordsModal = () => {
+        if (recordsHistoryModal) {
+            recordsHistoryModal.classList.remove('active');
+        }
+    };
+
+    if (closeRecordsHistoryModal) closeRecordsHistoryModal.addEventListener('click', closeRecordsModal);
+    if (closeRecordsHistoryBtn) closeRecordsHistoryBtn.addEventListener('click', closeRecordsModal);
 
     // Modal Control Handlers (Ward Directory & Advisor)
     if (bedsStatCard && wardDetailsModal) {
