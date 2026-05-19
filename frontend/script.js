@@ -22,11 +22,18 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 106, name: "Bed 106", status: "Available", patient: "", age: 0, severity: 0, condition: "", admittedAt: "", attendingDoctor: "" }
     ];
 
-    // Recent Admissions Log (Module 1)
-    let recentAdmissions = [
-        { id: 901, name: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis", bed: "Bed 101", timeStr: "14:15", attendingDoctor: "Dr. Smith" },
-        { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30", attendingDoctor: "Dr. House" }
-    ];
+    // Recent Admissions Log (Module 1) - Persisted to LocalStorage
+    let recentAdmissions = [];
+    const storedAdmissions = localStorage.getItem('dsa_recentAdmissions');
+    if (storedAdmissions) {
+        recentAdmissions = JSON.parse(storedAdmissions);
+    } else {
+        recentAdmissions = [
+            { id: 901, name: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis", bed: "Bed 101", timeStr: "14:15", attendingDoctor: "Dr. Smith", status: "Active" },
+            { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30", attendingDoctor: "Dr. House", status: "Active" }
+        ];
+        localStorage.setItem('dsa_recentAdmissions', JSON.stringify(recentAdmissions));
+    }
 
     // Clinical Events Timeline (Module 5) with Weekday scheduling
     let selectedCalendarDay = 'Mon';
@@ -253,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Remove from recent admissions log
                 recentAdmissions = recentAdmissions.filter(a => a.id !== action.data.patient.id);
+                localStorage.setItem('dsa_recentAdmissions', JSON.stringify(recentAdmissions));
                 
                 renderQueue();
                 renderBeds();
@@ -261,8 +269,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
                 
             case 'discharge':
-                // Restore the patient's record to recent admissions
-                recentAdmissions.unshift(action.data.admissionRecord);
+                // Re-activate the patient's record in recent admissions
+                const undoAdmIndex = recentAdmissions.findIndex(a => a.id === action.data.admissionRecord.id);
+                if (undoAdmIndex !== -1) {
+                    recentAdmissions[undoAdmIndex].status = "Active";
+                } else {
+                    recentAdmissions.unshift(action.data.admissionRecord);
+                }
+                localStorage.setItem('dsa_recentAdmissions', JSON.stringify(recentAdmissions));
                 
                 // Re-occupy the bed
                 const dischargeBed = beds.find(b => b.name === action.data.bedName);
@@ -904,7 +918,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <span class="admission-bed">${item.bed}</span>
-                    <button class="btn-discharge-mini" onclick="dischargePatient(${item.id})">Release</button>
+                    ${item.status === 'Discharged' ? `<span class="badge badge-success" style="font-size: 0.7rem; padding: 0.2rem 0.4rem; background-color: var(--color-sage); color: white; border-radius: 4px;">Released</span>` : `<button class="btn-discharge-mini" onclick="dischargePatient(${item.id})">Release</button>`}
                 </div>
             `;
             recentAdmissionsList.appendChild(div);
@@ -1024,10 +1038,12 @@ document.addEventListener('DOMContentLoaded', () => {
             condition: patient.condition,
             bed: assignedBed ? assignedBed.name : "Overflow Ward",
             timeStr: timeStr,
-            attendingDoctor: currentDoctor
+            attendingDoctor: currentDoctor,
+            status: "Active"
         };
 
         recentAdmissions.unshift(admissionRecord);
+        localStorage.setItem('dsa_recentAdmissions', JSON.stringify(recentAdmissions));
 
         // Record Undo Transaction
         pushTransaction({
@@ -1074,7 +1090,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        recentAdmissions.splice(index, 1);
+        recentAdmissions[index].status = "Discharged";
+        localStorage.setItem('dsa_recentAdmissions', JSON.stringify(recentAdmissions));
 
         renderBeds();
         renderRecentAdmissions(patientSearchInput ? patientSearchInput.value : '');
@@ -1088,11 +1105,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!bed) return;
 
         // Clean up from recent admissions log
-        const admissionIndex = recentAdmissions.findIndex(a => a.bed === bed.name);
+        const admissionIndex = recentAdmissions.findIndex(a => a.bed === bed.name && a.status === "Active");
         let record = null;
         if (admissionIndex !== -1) {
             record = recentAdmissions[admissionIndex];
-            recentAdmissions.splice(admissionIndex, 1);
+            recentAdmissions[admissionIndex].status = "Discharged";
+            localStorage.setItem('dsa_recentAdmissions', JSON.stringify(recentAdmissions));
         }
 
         // Record Undo Transaction
