@@ -28,9 +28,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (storedAdmissions) {
         recentAdmissions = JSON.parse(storedAdmissions);
     } else {
+        const today = new Date();
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayName = days[today.getDay()];
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        const todayStr = `${dayName} - ${dd}|${mm}|${yyyy}`;
+
         recentAdmissions = [
-            { id: 901, name: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis", bed: "Bed 101", timeStr: "14:15", attendingDoctor: "Dr. Smith", status: "Active" },
-            { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30", attendingDoctor: "Dr. House", status: "Active" }
+            { id: 901, name: "Marcus Aurelius", age: 58, severity: 2, condition: "Hypertensive Crisis", bed: "Bed 101", timeStr: "14:15", dateStr: todayStr, attendingDoctor: "Dr. Smith", status: "Active" },
+            { id: 902, name: "Clara Oswald", age: 28, severity: 4, condition: "Sprained Ankle", bed: "Bed 103", timeStr: "14:30", dateStr: todayStr, attendingDoctor: "Dr. House", status: "Active" }
         ];
         localStorage.setItem('dsa_recentAdmissions', JSON.stringify(recentAdmissions));
     }
@@ -914,7 +922,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        let currentDateGrp = null;
+
         filtered.forEach(item => {
+            const dateGrp = item.dateStr || "Unknown Date";
+            
+            if (dateGrp !== currentDateGrp) {
+                const headerDiv = document.createElement('div');
+                headerDiv.style = `background: var(--bg-main); padding: 0.5rem 1rem; font-weight: 600; font-size: 0.85rem; color: var(--text-charcoal); border-radius: 4px; margin-bottom: 0.5rem; border-left: 3px solid var(--color-sage); ${currentDateGrp ? 'margin-top: 1rem;' : ''}`;
+                headerDiv.textContent = dateGrp;
+                recentAdmissionsList.appendChild(headerDiv);
+                currentDateGrp = dateGrp;
+            }
+
             const div = document.createElement('div');
             div.className = 'admission-item';
             div.innerHTML = `
@@ -1036,6 +1056,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const timeNow = new Date();
         const timeStr = `${String(timeNow.getHours()).padStart(2, '0')}:${String(timeNow.getMinutes()).padStart(2, '0')}`;
         
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayName = days[timeNow.getDay()];
+        const dd = String(timeNow.getDate()).padStart(2, '0');
+        const mm = String(timeNow.getMonth() + 1).padStart(2, '0');
+        const yyyy = timeNow.getFullYear();
+        const dateStr = `${dayName} - ${dd}|${mm}|${yyyy}`;
+        
         const admissionRecord = {
             id: patient.id,
             name: patient.name,
@@ -1044,6 +1071,7 @@ document.addEventListener('DOMContentLoaded', () => {
             condition: patient.condition,
             bed: assignedBed ? assignedBed.name : "Overflow Ward",
             timeStr: timeStr,
+            dateStr: dateStr,
             attendingDoctor: currentDoctor,
             status: "Active"
         };
